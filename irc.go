@@ -85,7 +85,7 @@ func startIRCBot(conf *config, quit chan bool) {
 		fmt.Println(line.Args[1])
 		if isIRCChannel(recipient) &&
 			line.Args[1][0] != '.' &&
-			!strings.HasPrefix(line.Args[1], conf.IRC.Nick) {
+			!strings.HasPrefix(line.Args[1], conf.IRC.Nick+", ") {
 			return
 		}
 		conn.Privmsg(recipient, "All I do is relay messages.")
