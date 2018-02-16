@@ -32,6 +32,7 @@ func startIRCBot(conf *config, quit chan bool) {
 	cfg.Flood = true
 	cfg.SplitLen = 2000
 	cfg.Version = "Yobot v1"
+	cfg.Me.Name = strings.Title(conf.IRC.Nick)
 
 	cfg.UseSASL = conf.IRC.SASL.UseSASL
 	cfg.SASLLogin = conf.IRC.SASL.Login
