@@ -154,10 +154,13 @@ func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request)
 	conf := ctx.Value(configKey).(*config)
 
 	r.ParseForm()
-	msg := fmt.Sprintf("LibreNMS: Alert %s on host %s - %s",
+	msg := fmt.Sprintf("LibreNMS: %s %s on host %s - %s @ %s",
+		r.Form.Get("severity"),
 		r.Form.Get("title"),
 		r.Form.Get("host"),
-		r.Form.Get("rule"))
+		r.Form.Get("rule"),
+		r.Form.Get("timestamp"),
+	)
 
 	dispatchIRCMessage(conf, ctx.Value(routeKey).(string), msg)
 	w.Write([]byte(`{"accepted": true}`))

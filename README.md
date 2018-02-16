@@ -30,6 +30,8 @@ Uses URL parameters:
 - `host` - Hostname/system name
 - `title` - Title of alert
 - `rule` - Rule name
+- `severity` - Alert severity
+- `timestamp` - Alert timestamp
 
 LibreNMS doesn't support basic authentication for the API transport. Enabling
 basic authentication on this route (or aliased routes) will not work.
