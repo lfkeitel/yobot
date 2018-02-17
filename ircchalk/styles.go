@@ -29,6 +29,7 @@ const (
 	Royal   Color = "12"
 	Pink    Color = "13"
 	Grey    Color = "14"
+	Gray    Color = "14"
 	Silver  Color = "15"
 	Default Color = "99"
 )
