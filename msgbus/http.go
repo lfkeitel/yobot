@@ -19,8 +19,8 @@ type BusHandler func(context.Context, http.ResponseWriter, *http.Request)
 type MuxHandler func(*config.Config) http.HandlerFunc
 
 var (
-	handlers    = map[string]BusHandler{}
-	handlerLock sync.Mutex
+	busHandlers     = map[string]BusHandler{}
+	busHandlersLock sync.Mutex
 
 	muxHandlers = map[string]MuxHandler{
 		"/msgbus/": msgbusHandler,
@@ -29,12 +29,12 @@ var (
 )
 
 func RegisterMsgBus(id string, handler BusHandler) {
-	handlerLock.Lock()
-	defer handlerLock.Unlock()
-	if _, exists := handlers[id]; exists {
+	busHandlersLock.Lock()
+	defer busHandlersLock.Unlock()
+	if _, exists := busHandlers[id]; exists {
 		panic(fmt.Sprintf("handler id %s is already registered", id))
 	}
-	handlers[id] = handler
+	busHandlers[id] = handler
 }
 
 func RegisterMuxHandler(path string, handler MuxHandler) {
@@ -50,9 +50,9 @@ type ContextKey string
 
 // Keys used for context items
 const (
-	ConfigKey ContextKey = "config"
-	RouteKey  ContextKey = "route"
-	IRCKey    ContextKey = "irc"
+	configKey ContextKey = "config"
+	routeKey  ContextKey = "route"
+	ircKey    ContextKey = "irc"
 )
 
 var ircConn *irc.Conn
@@ -113,15 +113,18 @@ func msgbusHandler(conf *config.Config) http.HandlerFunc {
 			handlerID = conf.Routes[handlerID].Alias
 		}
 
-		handler := handlers[handlerID]
+		handler := busHandlers[handlerID]
 		if handler == nil || !conf.Routes[routeID].Enabled {
+			if !conf.Routes[routeID].Enabled {
+				fmt.Printf("Handler %s is disabled\n", routeID)
+			}
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
-		ctx := context.WithValue(context.Background(), RouteKey, routeID)
-		ctx = context.WithValue(ctx, ConfigKey, conf)
-		ctx = context.WithValue(ctx, IRCKey, ircConn)
+		ctx := SetCtxRouteID(context.Background(), routeID)
+		ctx = SetCtxConfig(ctx, conf)
+		ctx = SetCtxIRC(ctx, ircConn)
 
 		username := utils.FirstString(conf.Routes[routeID].Username, conf.Routes["default"].Username)
 		password := utils.FirstString(conf.Routes[routeID].Password, conf.Routes["default"].Password)
@@ -136,7 +139,7 @@ func msgbusHandler(conf *config.Config) http.HandlerFunc {
 }
 
 func authenticateHandler(username, password string, r *http.Request) bool {
-	if username == "" || password == "" { // No authentication configured
+	if username == "" || username == "-" || password == "" { // No authentication configured
 		return true
 	}
 
@@ -148,13 +151,21 @@ func authenticateHandler(username, password string, r *http.Request) bool {
 	return (username == rusername) && (password == rpassword)
 }
 
-func handleTest(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+// TestMsgBusHandler will print the body of a request and the URL parameters
+// to standard output for testing input data.
+func TestMsgBusHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	all, _ := ioutil.ReadAll(r.Body)
 	fmt.Printf("Test output: %s\n", string(all))
 	fmt.Printf("Test params: %s\n", r.URL.Query().Encode())
 }
 
-func DispatchIRCMessage(conf *config.Config, source, f string, a ...interface{}) {
+// DispatchIRCMessage will send a PRIVMSG to the apppriate channels
+// based on the messages source bus. The Context must have route and
+// conf key.
+func DispatchIRCMessage(ctx context.Context, f string, a ...interface{}) {
+	conf := GetCtxConfig(ctx)
+	source := GetCtxRouteID(ctx)
+
 	channels := conf.Routes[source].Channels
 	if len(channels) == 0 {
 		channels = conf.Routes["default"].Channels

@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-
-	"github.com/lfkeitel/yobot/config"
 )
 
 func init() {
@@ -13,8 +11,6 @@ func init() {
 }
 
 func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	conf := ctx.Value(ConfigKey).(*config.Config)
-
 	r.ParseForm()
 	msg := fmt.Sprintf("LibreNMS: %s %s on host %s - %s @ %s",
 		r.Form.Get("severity"),
@@ -24,6 +20,6 @@ func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request)
 		r.Form.Get("timestamp"),
 	)
 
-	DispatchIRCMessage(conf, ctx.Value(RouteKey).(string), msg)
+	DispatchIRCMessage(ctx, msg)
 	w.Write([]byte(`{"accepted": true}`))
 }

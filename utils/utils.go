@@ -15,3 +15,9 @@ func FirstString(o ...string) string {
 func FirstLine(s string) string {
 	return strings.Split(s, "\n")[0]
 }
+
+var quitChan = make(chan bool)
+
+func GetQuitChan() chan bool {
+	return quitChan
+}

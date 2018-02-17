@@ -14,26 +14,26 @@ func init() {
 	RegisterMsgBus("git", handleGit)
 }
 
-func handleGit(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	type gitEvent struct {
-		Secret  string
-		Ref     string
-		Commits []struct {
-			Message   string
-			URL       string
-			Committer struct {
-				Name     string
-				Email    string
-				Username string
-			}
-		}
-		Repository struct {
+type gitEvent struct {
+	Secret  string
+	Ref     string
+	Commits []struct {
+		Message   string
+		URL       string
+		Committer struct {
 			Name     string
-			FullName string `json:"full_name"`
-			HTMLurl  string
+			Email    string
+			Username string
 		}
 	}
+	Repository struct {
+		Name     string
+		FullName string `json:"full_name"`
+		HTMLurl  string
+	}
+}
 
+func handleGit(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	var event gitEvent
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&event); err != nil {
@@ -42,8 +42,8 @@ func handleGit(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	conf := ctx.Value(ConfigKey).(*config.Config)
-	routeID := ctx.Value(RouteKey).(string)
+	conf := ctx.Value(configKey).(*config.Config)
+	routeID := ctx.Value(routeKey).(string)
 
 	secret := utils.FirstString(conf.Routes[routeID].Settings["secret"], conf.Routes["git"].Settings["secret"])
 	if secret != event.Secret {
@@ -60,6 +60,6 @@ func handleGit(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 			commit.URL,
 		)
 
-		DispatchIRCMessage(conf, routeID, msg)
+		DispatchIRCMessage(ctx, msg)
 	}
 }

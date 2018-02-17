@@ -18,6 +18,7 @@ type Config struct {
 type MainConfig struct {
 	Debug      bool
 	ExtraDebug bool
+	ModulesDir string
 }
 
 type IRCConfig struct {

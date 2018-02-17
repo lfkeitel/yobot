@@ -12,6 +12,8 @@ import (
 	"github.com/lfkeitel/yobot/config"
 	"github.com/lfkeitel/yobot/ircbot"
 	"github.com/lfkeitel/yobot/msgbus"
+	"github.com/lfkeitel/yobot/plugins"
+	"github.com/lfkeitel/yobot/utils"
 )
 
 var (
@@ -37,7 +39,12 @@ func main() {
 		conf.Main.Debug = true
 	}
 
-	quit := make(chan bool)
+	if err := plugins.Load(conf.Main.ModulesDir); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	quit := utils.GetQuitChan()
 	done := make(chan bool, 2)
 	if err := ircbot.Start(conf, quit, done); err != nil {
 		fmt.Println(err)

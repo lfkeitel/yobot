@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-
-	"github.com/lfkeitel/yobot/config"
 )
 
 func init() {
@@ -14,7 +12,6 @@ func init() {
 }
 
 func handleGeneral(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	conf := ctx.Value(ConfigKey).(*config.Config)
 	type genericAlert struct {
 		Title      string `json:"title"`
 		Message    string `json:"message"`
@@ -29,6 +26,6 @@ func handleGeneral(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	DispatchIRCMessage(conf, ctx.Value(RouteKey).(string), "%s - %s", alert.Title, alert.Message)
+	DispatchIRCMessage(ctx, "%s - %s", alert.Title, alert.Message)
 	w.Write([]byte(`{"accepted": true}`))
 }
