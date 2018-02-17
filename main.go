@@ -6,17 +6,16 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
-	irc "github.com/lfkeitel/goirc/client"
+	"github.com/lfkeitel/yobot/config"
+	"github.com/lfkeitel/yobot/ircbot"
+	"github.com/lfkeitel/yobot/msgbus"
 )
 
 var (
 	configFile string
-
-	ircConn *irc.Conn
 )
 
 func init() {
@@ -28,7 +27,7 @@ func init() {
 func main() {
 	flag.Parse()
 
-	conf, err := loadConfig(configFile)
+	conf, err := config.LoadConfig(configFile)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -39,28 +38,37 @@ func main() {
 	}
 
 	quit := make(chan bool)
-	go startIRCBot(conf, quit)
-	go startHTTPServer(conf, quit)
+	done := make(chan bool, 2)
+	if err := ircbot.Start(conf, quit, done); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	msgbus.SetIRCConn(ircbot.GetIRCConn())
+	if err := msgbus.Start(conf, quit, done); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
-	<-shutdown
-	fmt.Println("Stopping")
-	close(quit)
-	time.Sleep(5)
-}
-
-func firstString(o ...string) string {
-	for _, s := range o {
-		if s != "" {
-			return s
-		}
+	select {
+	case <-quit:
+	case <-shutdown:
+		close(quit)
 	}
 
-	return ""
-}
+	fmt.Println("Stopping")
+	timer := time.NewTimer(5 * time.Second)
 
-func firstLine(s string) string {
-	return strings.Split(s, "\n")[0]
+	// Wait for all services to stop
+	for i := 0; i < 2; i++ {
+		select {
+		case <-done:
+		case <-timer.C:
+			fmt.Println("Services didn't stop fast enought")
+			os.Exit(1)
+		}
+	}
 }

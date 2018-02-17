@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"errors"
@@ -8,19 +8,19 @@ import (
 	"github.com/naoina/toml"
 )
 
-type config struct {
-	Main   mainConfig
-	IRC    ircConfig
-	HTTP   httpConfig
-	Routes map[string]routeConfig
+type Config struct {
+	Main   MainConfig
+	IRC    IRCConfig
+	HTTP   HTTPConfig
+	Routes map[string]RouteConfig
 }
 
-type mainConfig struct {
+type MainConfig struct {
 	Debug      bool
 	ExtraDebug bool
 }
 
-type ircConfig struct {
+type IRCConfig struct {
 	Server                string
 	Port                  int
 	Nick                  string
@@ -36,11 +36,11 @@ type ircConfig struct {
 	}
 }
 
-type httpConfig struct {
+type HTTPConfig struct {
 	Address string
 }
 
-type routeConfig struct {
+type RouteConfig struct {
 	Enabled  bool
 	Channels []string
 	Username string
@@ -49,7 +49,7 @@ type routeConfig struct {
 	Settings map[string]string
 }
 
-func loadConfig(filename string) (conf *config, err error) {
+func LoadConfig(filename string) (conf *Config, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			switch x := r.(type) {
@@ -76,13 +76,13 @@ func loadConfig(filename string) (conf *config, err error) {
 	if err != nil {
 		return nil, err
 	}
-	var con config
+	var con Config
 	if err := toml.Unmarshal(buf, &con); err != nil {
 		return nil, err
 	}
 	return setSensibleDefaults(&con)
 }
 
-func setSensibleDefaults(con *config) (*config, error) {
+func setSensibleDefaults(con *Config) (*Config, error) {
 	return con, nil
 }

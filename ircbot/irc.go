@@ -1,16 +1,37 @@
-package main
+package ircbot
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	irc "github.com/lfkeitel/goirc/client"
 	"github.com/lfkeitel/goirc/logging"
+
+	"github.com/lfkeitel/yobot/config"
 )
 
-func startIRCBot(conf *config, quit chan bool) {
+var ircConn *irc.Conn
+
+func GetIRCConn() *irc.Conn {
+	return ircConn
+}
+
+func Start(conf *config.Config, quit, done chan bool) error {
+	ready := make(chan bool)
+	go start(conf, quit, done, ready)
+
+	select {
+	case <-ready:
+	case <-time.After(5 * time.Second):
+		return errors.New("Failed connecting to IRC server")
+	}
+	return nil
+}
+
+func start(conf *config.Config, quit, done, ready chan bool) {
 	if conf.Main.ExtraDebug {
 		logging.SetLogger(&logging.StdoutLogger{})
 	}
@@ -39,6 +60,8 @@ func startIRCBot(conf *config, quit chan bool) {
 	cfg.SASLPassword = conf.IRC.SASL.Password
 	c := irc.Client(cfg)
 
+	var chans []string
+
 	c.HandleFunc(irc.CONNECTED, func(conn *irc.Conn, line *irc.Line) {
 		fmt.Println("Connected to IRC server, joining channels")
 
@@ -59,13 +82,20 @@ func startIRCBot(conf *config, quit chan bool) {
 			if channel[0] == '#' {
 				fmt.Printf("Joining %s\n", channel)
 				conn.Join(channel)
+				chans = append(chans, channel)
 			}
 		}
 
 		ircConn = conn
+		close(ready)
 	})
 
+	closing := false
 	c.HandleFunc(irc.DISCONNECTED, func(conn *irc.Conn, line *irc.Line) {
+		if closing {
+			return
+		}
+
 		<-time.After(2 * time.Second)
 		if err := conn.Connect(); err != nil {
 			fmt.Printf("Error attempting reconnection: %s\n", err)
@@ -97,7 +127,19 @@ func startIRCBot(conf *config, quit chan bool) {
 	}
 
 	<-quit
+	closing = true
+	fmt.Println("Disconnecting from IRC server")
+
+	for _, channel := range chans {
+		fmt.Printf("Leaving %s\n", channel)
+		c.Part(channel, "Bye, bye")
+	}
+	c.Quit("Bye everyone!")
+
+	<-time.After(1 * time.Second) // Give messages time to send
 	c.Close()
+	fmt.Println("Disconnected for IRC server")
+	done <- true
 }
 
 func parseCommandLine(line string) []string {
