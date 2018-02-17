@@ -82,6 +82,7 @@ func msgbusHandler(conf *config.Config) http.HandlerFunc {
 			return
 		}
 
+		r.ParseForm()
 		if strings.Count(r.URL.Path, "/") < 2 {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -122,8 +123,29 @@ func msgbusHandler(conf *config.Config) http.HandlerFunc {
 }
 
 func authenticateHandler(username, password string, r *http.Request) bool {
-	if username == "" || username == "-" || password == "" { // No authentication configured
+	if password == "" { // No authentication configured
 		return true
+	}
+
+	if username == "" || username == "-" { // authkey authentication
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" { // No header, check authkey parameter
+			keyParam := r.FormValue("authkey")
+			if keyParam == "" {
+				return false
+			}
+			return keyParam == password
+		}
+
+		header := strings.SplitN(authHeader, " ", 2)
+		if len(header) != 2 {
+			return false
+		}
+
+		if header[0] != "Authkey" {
+			return false
+		}
+		return header[1] == password
 	}
 
 	rusername, rpassword, ok := r.BasicAuth()

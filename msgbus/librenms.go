@@ -14,7 +14,6 @@ func init() {
 }
 
 func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
 	severity := strings.ToUpper(r.Form.Get("severity"))
 
 	switch severity {
