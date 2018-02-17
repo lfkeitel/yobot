@@ -36,3 +36,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/naoina/toml"
+
+[[constraint]]
+  name = "github.com/kennygrant/sanitize"
+  version = "1.2.3"

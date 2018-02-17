@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/lfkeitel/yobot/utils"
 	"github.com/naoina/toml"
@@ -21,6 +22,7 @@ type MainConfig struct {
 	ExtraDebug bool
 	ModulesDir string
 	Modules    []string
+	DataDir    string
 }
 
 type IRCConfig struct {
@@ -88,5 +90,11 @@ func LoadConfig(filename string) (conf *Config, err error) {
 
 func setSensibleDefaults(con *Config) (*Config, error) {
 	con.Main.ModulesDir = utils.FirstString(con.Main.ModulesDir, "modules")
+	con.Main.DataDir = utils.FirstString(con.Main.DataDir, "data")
 	return con, nil
+}
+
+// ModuleDataDir returns the path to a modules data directory.
+func (c *Config) ModuleDataDir(name string) string {
+	return filepath.Join(c.Main.DataDir, name)
 }

@@ -8,6 +8,12 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "github.com/kennygrant/sanitize"
+  packages = ["."]
+  revision = "2e6820834a1f36c626bf19a253b7d3cc060e9b8b"
+  version = "v1.2.3"
+
+[[projects]]
   branch = "sasl-auth"
   name = "github.com/lfkeitel/goirc"
   packages = [
@@ -35,12 +41,16 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
-  packages = ["proxy"]
+  packages = [
+    "html",
+    "html/atom",
+    "proxy"
+  ]
   revision = "136a25c244d3019482a795d728110278d6ba09a4"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4b4194477aaf2308b4f2cfebd2c40ba2ca03052bedf2012261784044ad15855b"
+  inputs-digest = "cd3265b2cd0f7fb566e620010f2c1b307cdab6ab241f0ef94091ed4cccb4982d"
   solver-name = "gps-cdcl"
   solver-version = 1

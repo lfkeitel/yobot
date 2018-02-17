@@ -21,3 +21,21 @@ var quitChan = make(chan bool)
 func GetQuitChan() chan bool {
 	return quitChan
 }
+
+func StringInSlice(s string, ss []string) bool {
+	for _, v := range ss {
+		if s == v {
+			return true
+		}
+	}
+	return false
+}
+
+func IndexOfString(s string, ss []string) int {
+	for i, v := range ss {
+		if s == v {
+			return i
+		}
+	}
+	return -1
+}

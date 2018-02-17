@@ -51,6 +51,11 @@ func main() {
 		conf.Main.Debug = true
 	}
 
+	if err := os.MkdirAll(conf.Main.DataDir, 0755); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
 	if err := plugins.Load(conf.Main.ModulesDir, conf.Main.Modules); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
