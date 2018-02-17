@@ -181,6 +181,12 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 	})
 
 	c.HandleFunc(irc.PRIVMSG, func(conn *irc.Conn, line *irc.Line) {
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Println(r)
+			}
+		}()
+
 		if conf.Main.Debug {
 			fmt.Printf("%#v\n", line)
 		}
@@ -224,7 +230,9 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 		var handler CommandHandler
 		for name, chandler := range commands {
 			if name == cmd {
-				handler = chandler.Handler
+				if chandler != nil {
+					handler = chandler.Handler
+				}
 				break
 			}
 		}
@@ -237,10 +245,6 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 		}
 
 		if handler == nil {
-			if IsChannel(recipient) {
-				recipient = line.Nick
-			}
-
 			conn.Privmsg(recipient, "Please try .help")
 			return
 		}

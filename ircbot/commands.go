@@ -31,11 +31,11 @@ var (
 		Handler: func(conn *irc.Conn, event *Event) error {
 			conn.Noticef(event.Source, "%s available commands:", ircchalk.Bold(event.Config.IRC.Nick))
 
-			cmdNames := make([]string, len(commands))
-			i := 0
-			for name := range commands {
-				cmdNames[i] = name
-				i++
+			cmdNames := make([]string, 0, len(commands))
+			for name, command := range commands {
+				if command != nil {
+					cmdNames = append(cmdNames, name)
+				}
 			}
 
 			sort.Strings(cmdNames)
