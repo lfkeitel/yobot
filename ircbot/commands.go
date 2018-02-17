@@ -2,6 +2,7 @@ package ircbot
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"text/tabwriter"
 
@@ -30,10 +31,19 @@ var (
 		Handler: func(conn *irc.Conn, event *Event) error {
 			conn.Noticef(event.Source, "%s available commands:", ircchalk.Bold(event.Config.IRC.Nick))
 
+			cmdNames := make([]string, len(commands))
+			i := 0
+			for name := range commands {
+				cmdNames[i] = name
+				i++
+			}
+
+			sort.Strings(cmdNames)
+
 			var buf strings.Builder
 			tabs := tabwriter.NewWriter(&buf, 0, 0, 1, ' ', 0)
-			for name, command := range commands {
-				tabs.Write([]byte(fmt.Sprintf("   %s\t  %s\n", strings.ToUpper(name), utils.FirstLine(command.Help))))
+			for _, name := range cmdNames {
+				tabs.Write([]byte(fmt.Sprintf("   %s\t  %s\n", strings.ToUpper(name), utils.FirstLine(commands[name].Help))))
 			}
 			tabs.Flush()
 
