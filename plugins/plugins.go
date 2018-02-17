@@ -10,6 +10,10 @@ import (
 )
 
 func Load(path string) error {
+	if path == "" {
+		return nil
+	}
+
 	fmt.Println("Loading modules")
 	return filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		if info == nil {

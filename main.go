@@ -18,10 +18,15 @@ import (
 
 var (
 	configFile string
+
+	debug      bool
+	extraDebug bool
 )
 
 func init() {
 	flag.StringVar(&configFile, "c", "config.toml", "Config file")
+	flag.BoolVar(&debug, "debug", false, "Debug mode")
+	flag.BoolVar(&extraDebug, "debug2", false, "Extra debug mode")
 
 	rand.Seed(time.Now().UnixNano())
 }
@@ -33,6 +38,13 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
+	}
+
+	if extraDebug {
+		conf.Main.ExtraDebug = extraDebug
+	}
+	if debug {
+		conf.Main.Debug = debug
 	}
 
 	if conf.Main.ExtraDebug {

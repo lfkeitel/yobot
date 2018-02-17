@@ -195,6 +195,16 @@ func (conn *Conn) Notice(t, msg string) {
 	}
 }
 
+// Noticef is the variadic version of Notice that formats the message
+// that is sent to the target nick or channel t using the
+// fmt.Sprintf function.
+func (conn *Conn) Noticef(t, format string, a ...interface{}) {
+	msg := fmt.Sprintf(format, a...)
+	for _, s := range splitMessage(msg, conn.cfg.SplitLen) {
+		conn.Raw(NOTICE + " " + t + " :" + s)
+	}
+}
+
 // Ctcp sends a (generic) CTCP message to the target nick
 // or channel t, with an optional argument.
 //     PRIVMSG t :\001CTCP arg\001

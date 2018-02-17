@@ -15,7 +15,7 @@
     "logging",
     "state"
   ]
-  revision = "df08e838a07ad551196cb2e3696070004061c247"
+  revision = "596625034779ca2aece9737567e6845659a516a5"
 
 [[projects]]
   name = "github.com/naoina/go-stringutil"

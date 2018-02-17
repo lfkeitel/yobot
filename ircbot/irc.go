@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	irc "github.com/lfkeitel/goirc/client"
@@ -17,6 +18,34 @@ var ircConn *irc.Conn
 
 func GetBot() *irc.Conn {
 	return ircConn
+}
+
+type Event struct {
+	*irc.Line
+	Source string
+	Args   []string
+	Config *config.Config
+}
+
+type CommandHandler func(conn *irc.Conn, event *Event) error
+type Command struct {
+	name    string
+	Handler CommandHandler
+	Help    string
+}
+
+var (
+	commands     = map[string]*Command{}
+	commandsLock sync.Mutex
+)
+
+func RegisterCommand(cmd string, command Command) {
+	commandsLock.Lock()
+	defer commandsLock.Unlock()
+	if _, exists := commands[cmd]; exists {
+		panic(fmt.Sprintf("IRC command %s is already registered", cmd))
+	}
+	commands[cmd] = &command
 }
 
 func Start(conf *config.Config, quit, done chan bool) error {
@@ -50,10 +79,10 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 	cfg.Server = fmt.Sprintf("%s:%d", conf.IRC.Server, conf.IRC.Port)
 	cfg.NewNick = func(n string) string { return n + "^" }
 	cfg.Me.Ident = conf.IRC.Nick
+	cfg.Me.Name = strings.Title(conf.IRC.Nick)
 	cfg.Flood = true
 	cfg.SplitLen = 2000
 	cfg.Version = "Yobot v1"
-	cfg.Me.Name = strings.Title(conf.IRC.Nick)
 
 	cfg.UseSASL = conf.IRC.SASL.UseSASL
 	cfg.SASLLogin = conf.IRC.SASL.Login
@@ -113,13 +142,64 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 			recipient = line.Nick
 		}
 
-		fmt.Println(line.Args[1])
-		if isIRCChannel(recipient) &&
-			line.Args[1][0] != '.' &&
+		if conf.Main.Debug {
+			fmt.Println(line.Args[1])
+		}
+		if IsChannel(recipient) &&
+			!isCommand(line.Args[1]) &&
 			!strings.HasPrefix(line.Args[1], conf.IRC.Nick+", ") {
 			return
 		}
-		conn.Privmsg(recipient, "All I do is relay messages.")
+
+		addressedByName := false
+		args := parseCommandLine(line.Args[1])
+		if args[0] == conf.IRC.Nick+"," {
+			args = args[1:]
+			addressedByName = true
+		}
+
+		if len(args) == 0 {
+			return
+		}
+
+		if (addressedByName || !IsChannel(recipient)) && !isCommand(args[0]) {
+			args[0] = "." + args[0]
+		}
+
+		if conf.Main.Debug {
+			fmt.Printf("Source: %s, Line: %v\n", recipient, args)
+		}
+
+		cmd := strings.ToLower(args[0])
+		args = args[1:]
+
+		var handler CommandHandler
+		for name, chandler := range commands {
+			if name == cmd {
+				handler = chandler.Handler
+				break
+			}
+		}
+
+		if handler == nil {
+			if IsChannel(recipient) {
+				recipient = line.Nick
+			}
+
+			conn.Privmsg(recipient, "Please try .help")
+			return
+		}
+
+		event := &Event{
+			Line:   line,
+			Source: recipient,
+			Args:   args,
+			Config: conf,
+		}
+
+		if err := handler(conn, event); err != nil {
+			fmt.Println(err)
+		}
 	})
 
 	if err := c.Connect(); err != nil {
@@ -146,6 +226,13 @@ func parseCommandLine(line string) []string {
 	return strings.Split(line, " ")
 }
 
-func isIRCChannel(name string) bool {
+func IsChannel(name string) bool {
 	return len(name) > 0 && name[0] == '#'
+}
+
+func isCommand(s string) bool {
+	if s == "" {
+		return false
+	}
+	return s[0] == '.' || s[0] == '#' || s[0] == '!'
 }
