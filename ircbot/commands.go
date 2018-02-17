@@ -6,6 +6,7 @@ import (
 	"text/tabwriter"
 
 	irc "github.com/lfkeitel/goirc/client"
+	"github.com/lfkeitel/yobot/ircchalk"
 	"github.com/lfkeitel/yobot/utils"
 )
 
@@ -27,7 +28,7 @@ var (
 	}
 	helpCommand = Command{
 		Handler: func(conn *irc.Conn, event *Event) error {
-			conn.Noticef(event.Source, "%s available commands:", event.Config.IRC.Nick)
+			conn.Noticef(event.Source, "%s available commands:", ircchalk.Bold(event.Config.IRC.Nick))
 
 			var buf strings.Builder
 			tabs := tabwriter.NewWriter(&buf, 0, 0, 1, ' ', 0)
