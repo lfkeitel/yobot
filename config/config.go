@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/lfkeitel/yobot/utils"
 	"github.com/naoina/toml"
 )
 
@@ -19,6 +20,7 @@ type MainConfig struct {
 	Debug      bool
 	ExtraDebug bool
 	ModulesDir string
+	Modules    []string
 }
 
 type IRCConfig struct {
@@ -85,5 +87,6 @@ func LoadConfig(filename string) (conf *Config, err error) {
 }
 
 func setSensibleDefaults(con *Config) (*Config, error) {
+	con.Main.ModulesDir = utils.FirstString(con.Main.ModulesDir, "modules")
 	return con, nil
 }

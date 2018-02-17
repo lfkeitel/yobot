@@ -9,25 +9,28 @@ import (
 	"plugin"
 )
 
-func Load(path string) error {
-	if path == "" {
+func Load(path string, modules []string) error {
+	if len(modules) == 0 {
 		return nil
 	}
 
 	fmt.Println("Loading modules")
-	return filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-		if info == nil {
-			return nil
-		}
-		if info.IsDir() || filepath.Ext(path) != ".so" {
-			return nil
-		}
-		if err != nil {
-			return err
+
+	for _, module := range modules {
+		p := filepath.Join(path, module+".so")
+		if !fileExists(p) {
+			return fmt.Errorf("Module %s not found", module)
 		}
 
-		fmt.Printf("Loading module %s\n", filepath.Base(path))
-		_, err = plugin.Open(path)
-		return err
-	})
+		if _, err := plugin.Open(p); err != nil {
+			return err
+		}
+		fmt.Printf("Loaded %s\n", module)
+	}
+	return nil
+}
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return !os.IsNotExist(err)
 }
