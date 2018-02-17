@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/lfkeitel/yobot/config"
 	"github.com/lfkeitel/yobot/utils"
 )
 
@@ -42,8 +41,8 @@ func handleGit(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	conf := ctx.Value(configKey).(*config.Config)
-	routeID := ctx.Value(routeKey).(string)
+	conf := GetCtxConfig(ctx)
+	routeID := GetCtxRouteID(ctx)
 
 	secret := utils.FirstString(conf.Routes[routeID].Settings["secret"], conf.Routes["git"].Settings["secret"])
 	if secret != event.Secret {

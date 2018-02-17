@@ -51,7 +51,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	msgbus.SetIRCConn(ircbot.GetIRCConn())
 	if err := msgbus.Start(conf, quit, done); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

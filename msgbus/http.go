@@ -9,9 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	irc "github.com/lfkeitel/goirc/client"
-
 	"github.com/lfkeitel/yobot/config"
+	"github.com/lfkeitel/yobot/ircbot"
 	"github.com/lfkeitel/yobot/utils"
 )
 
@@ -44,21 +43,6 @@ func RegisterMuxHandler(path string, handler MuxHandler) {
 		panic(fmt.Sprintf("handler path %s is already registered", path))
 	}
 	muxHandlers[path] = handler
-}
-
-type ContextKey string
-
-// Keys used for context items
-const (
-	configKey ContextKey = "config"
-	routeKey  ContextKey = "route"
-	ircKey    ContextKey = "irc"
-)
-
-var ircConn *irc.Conn
-
-func SetIRCConn(c *irc.Conn) {
-	ircConn = c
 }
 
 func Start(conf *config.Config, quit, done chan bool) error {
@@ -124,7 +108,6 @@ func msgbusHandler(conf *config.Config) http.HandlerFunc {
 
 		ctx := SetCtxRouteID(context.Background(), routeID)
 		ctx = SetCtxConfig(ctx, conf)
-		ctx = SetCtxIRC(ctx, ircConn)
 
 		username := utils.FirstString(conf.Routes[routeID].Username, conf.Routes["default"].Username)
 		password := utils.FirstString(conf.Routes[routeID].Password, conf.Routes["default"].Password)
@@ -172,6 +155,6 @@ func DispatchIRCMessage(ctx context.Context, f string, a ...interface{}) {
 	}
 
 	for _, channel := range channels {
-		ircConn.Privmsgf(channel, f, a...)
+		ircbot.GetBot().Privmsgf(channel, f, a...)
 	}
 }

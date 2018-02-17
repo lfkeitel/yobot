@@ -15,7 +15,7 @@ import (
 
 var ircConn *irc.Conn
 
-func GetIRCConn() *irc.Conn {
+func GetBot() *irc.Conn {
 	return ircConn
 }
 

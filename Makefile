@@ -11,10 +11,11 @@ build:
 build-no-modules:
 	CGO_ENABLED=0 go build -o bin/yobot main.go
 
+modules: SHELL:=/bin/bash
 modules:
 	@echo "Building modules"
 	@rm -f ./modules/*.so
-	@for m in ./modules/*; do \
+	@find modules/* -type d -print0 | while IFS= read -r -d $$'\0' m; do \
 		cd "$$m"; \
 		echo "Building $$(basename $$m).so"; \
 		go build -buildmode=plugin -o "../$$(basename $$m).so" .; \

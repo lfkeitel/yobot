@@ -7,6 +7,15 @@ import (
 	"github.com/lfkeitel/yobot/config"
 )
 
+type contextKey string
+
+// Keys used for context items
+const (
+	configKey contextKey = "config"
+	routeKey  contextKey = "route"
+	ircKey    contextKey = "irc"
+)
+
 func GetCtxRouteID(ctx context.Context) string {
 	return ctx.Value(routeKey).(string)
 }
