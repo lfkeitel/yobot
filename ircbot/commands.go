@@ -20,14 +20,14 @@ func init() {
 }
 
 var (
-	pingCommand = Command{
+	pingCommand = &Command{
 		Handler: func(conn *irc.Conn, event *Event) error {
 			conn.Privmsg(event.Source, "pong")
 			return nil
 		},
 		Help: "Let's play ping pong",
 	}
-	helpCommand = Command{
+	helpCommand = &Command{
 		Handler: func(conn *irc.Conn, event *Event) error {
 			conn.Noticef(event.Source, "%s available commands:", ircchalk.Bold(event.Config.IRC.Nick))
 
@@ -55,14 +55,14 @@ var (
 		},
 		Help: "List help information",
 	}
-	helloCommand = Command{
+	helloCommand = &Command{
 		Handler: func(conn *irc.Conn, event *Event) error {
 			conn.Privmsg(event.Source, "Hello, how are you?")
 			return nil
 		},
 		Help: "Say hello",
 	}
-	ping2Command = Command{
+	ping2Command = &Command{
 		Handler: func(conn *irc.Conn, event *Event) error {
 			conn.Privmsg(event.Source, "pong2")
 			return nil

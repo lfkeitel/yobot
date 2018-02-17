@@ -16,38 +16,86 @@ import (
 
 var ircConn *irc.Conn
 
+// GetBot returns the existing IRC connection.
 func GetBot() *irc.Conn {
 	return ircConn
 }
 
+// An Event is an IRC message with some niceties added.
 type Event struct {
+	// Line is the underlying IRC library event object
 	*irc.Line
+
+	// Source is the channel or nickname where the event originated
 	Source string
-	Args   []string
+
+	// Args is the space-split text after the command
+	Args []string
+
+	// Config is the application configuration
 	Config *config.Config
+
+	// Command is the command name issued such as ".ping"
+	Command string
 }
 
+// A CommandHandler actually handles processing a command.
 type CommandHandler func(conn *irc.Conn, event *Event) error
+
+// A Command contains information about a command.
 type Command struct {
-	name    string
+	name string
+
+	// Handler will be called when a message comes in for a given command
 	Handler CommandHandler
-	Help    string
+
+	// Help is a one line description of the command shown when the user
+	// issues ".help"
+	Help string
 }
 
 var (
 	commands     = map[string]*Command{}
 	commandsLock sync.Mutex
+	defaultCmds  = map[string]*Command{}
 )
 
-func RegisterCommand(cmd string, command Command) {
+// RegisterCommand allows a module to register a command text with a handler.
+// Commands must begin with a '.', '#', or '!'. If a user is direct messaging
+// the bot, a '.' is prepended to any command that doesn't already look like
+// a command. E.g., if a user sends "ping" it will be transformed into ".ping"
+// before being routed.
+func RegisterCommand(cmd string, command *Command) {
 	commandsLock.Lock()
 	defer commandsLock.Unlock()
+	if !isCommand(cmd) {
+		panic(fmt.Sprintf("%s is not a valid command", cmd))
+	}
+
 	if _, exists := commands[cmd]; exists {
 		panic(fmt.Sprintf("IRC command %s is already registered", cmd))
 	}
-	commands[cmd] = &command
+	commands[cmd] = command
 }
 
+// SetDefaultCommand allows a module to route any non-existant command messages to
+// a particular command. This can be used to engage a user mode where the user doesn't
+// need to prepend every message with a command. The module is responsible for clearing
+// the default command when it's done. t may be a user nick or channel name.
+// Setting a new default command will override any previous default.
+func SetDefaultCommand(t string, command *Command) {
+	fmt.Printf("Setting default handler for %s\n", t)
+	defaultCmds[t] = command
+}
+
+// ClearDefaultCommand will remove the default non-existant command command from a target.
+// t may be a user nick or channel name.
+func ClearDefaultCommand(t string) {
+	fmt.Printf("Clearing default handler for %s\n", t)
+	defaultCmds[t] = nil
+}
+
+// Start will attempt to the start the IRC client.
 func Start(conf *config.Config, quit, done chan bool) error {
 	ready := make(chan bool)
 	go start(conf, quit, done, ready)
@@ -182,6 +230,13 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 		}
 
 		if handler == nil {
+			d := defaultCmds[recipient]
+			if d != nil {
+				handler = d.Handler
+			}
+		}
+
+		if handler == nil {
 			if IsChannel(recipient) {
 				recipient = line.Nick
 			}
@@ -191,10 +246,11 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 		}
 
 		event := &Event{
-			Line:   line,
-			Source: recipient,
-			Args:   args,
-			Config: conf,
+			Line:    line,
+			Source:  recipient,
+			Args:    args,
+			Config:  conf,
+			Command: cmd,
 		}
 
 		if err := handler(conn, event); err != nil {
@@ -226,6 +282,7 @@ func parseCommandLine(line string) []string {
 	return strings.Split(line, " ")
 }
 
+// IsChannel returns if a string looks like a channel name.
 func IsChannel(name string) bool {
 	return len(name) > 0 && name[0] == '#'
 }
