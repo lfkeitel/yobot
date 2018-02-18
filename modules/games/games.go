@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	irc "github.com/lfkeitel/goirc/client"
+	"github.com/lfkeitel/yobot/ircbot"
 )
 
 const (
@@ -14,9 +15,9 @@ const (
 type game interface {
 	id() string
 	isActive() bool
-	start(conn *irc.Conn, line *irc.Line)
-	stop(conn *irc.Conn, line *irc.Line)
-	play(conn *irc.Conn, line *irc.Line, args []string)
+	start(conn *ircbot.Conn, line *irc.Line)
+	stop(conn *ircbot.Conn, line *irc.Line)
+	play(conn *ircbot.Conn, line *irc.Line, args []string)
 }
 
 var games = make(map[string]game)
@@ -37,10 +38,10 @@ type baseGame struct {
 	active bool
 }
 
-func newBaseGame() *baseGame                             { return &baseGame{} }
-func (g *baseGame) isActive() bool                       { return g.active }
-func (g *baseGame) start(conn *irc.Conn, line *irc.Line) { g.active = true }
-func (g *baseGame) stop(conn *irc.Conn, line *irc.Line)  { g.active = false }
+func newBaseGame() *baseGame                                { return &baseGame{} }
+func (g *baseGame) isActive() bool                          { return g.active }
+func (g *baseGame) start(conn *ircbot.Conn, line *irc.Line) { g.active = true }
+func (g *baseGame) stop(conn *ircbot.Conn, line *irc.Line)  { g.active = false }
 
 const guessingTries = 6
 
@@ -58,14 +59,14 @@ func (g *guessingGame) id() string {
 	return guessingGameID
 }
 
-func (g *guessingGame) start(conn *irc.Conn, line *irc.Line) {
+func (g *guessingGame) start(conn *ircbot.Conn, line *irc.Line) {
 	g.baseGame.active = true
 	g.number = int(rand.Int31n(99)) + 1
 	g.triesLeft = guessingTries
 	conn.Noticef(line.Nick, "Guess a number between 1-100, you have %d tries", guessingTries)
 }
 
-func (g *guessingGame) play(conn *irc.Conn, line *irc.Line, args []string) {
+func (g *guessingGame) play(conn *ircbot.Conn, line *irc.Line, args []string) {
 	if len(args) != 1 {
 		conn.Notice(line.Nick, "Just give me your guess please.")
 		return

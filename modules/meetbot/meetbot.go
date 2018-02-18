@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/kennygrant/sanitize"
-	irc "github.com/lfkeitel/goirc/client"
 
 	"github.com/lfkeitel/yobot/ircbot"
 )
@@ -38,7 +38,7 @@ func timeNowInUTC() string {
 
 var startMeetingCmd = &ircbot.Command{
 	Help: "Start a meeting: #startmeeting Meeting Name",
-	Handler: func(conn *irc.Conn, event *ircbot.Event) error {
+	Handler: func(conn *ircbot.Conn, event *ircbot.Event) error {
 		if !ircbot.IsChannel(event.Source) {
 			return nil
 		}
@@ -72,6 +72,8 @@ var startMeetingCmd = &ircbot.Command{
 		}
 		meetings[event.Source] = m
 
+		ircbot.RegisterTap(m.tap, "meetbot", event.Source)
+
 		conn.Privmsgf(event.Source, "Meeting started %s. The chair is %s.", m.Started.Format(meetingTimeFormat), event.Line.Nick)
 		conn.Privmsg(event.Source, "Useful commands: #action #agreed #info #topic #rollcall")
 		conn.Topic(event.Source, fmt.Sprintf("Meeting: %s", meetingName))
@@ -83,7 +85,7 @@ var startMeetingCmd = &ircbot.Command{
 
 var endMeetingCmd = &ircbot.Command{
 	Help: "End a meeting: #endmeeting",
-	Handler: func(conn *irc.Conn, event *ircbot.Event) error {
+	Handler: func(conn *ircbot.Conn, event *ircbot.Event) error {
 		if !ircbot.IsChannel(event.Source) {
 			return nil
 		}
@@ -103,6 +105,7 @@ var endMeetingCmd = &ircbot.Command{
 
 		meet.end(conn, event)
 		delete(meetings, event.Source)
+		ircbot.UnregisterTap("meetbot", event.Source)
 
 		conn.Topic(event.Source, fmt.Sprintf("Meeting room %s", event.Source))
 		conn.Privmsgf(event.Source, "Meeting ended %s.", meet.Ended.Format(meetingTimeFormat))
@@ -114,14 +117,20 @@ var endMeetingCmd = &ircbot.Command{
 			return err
 		}
 
-		log, err := os.OpenFile(filepath.Join(meetingPath, meet.Started.Format(time.RFC3339)), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+		meetingSummaryPath := filepath.Join(meetingPath, meet.Started.Format(time.RFC3339))
+		log, err := os.OpenFile(meetingSummaryPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 		if err != nil {
-			conn.Privmsg(event.Source, "Error saving meeting log. Please see application logs.")
+			conn.Privmsg(event.Source, "Error saving meeting minutes. Please see application logs.")
 			return err
 		}
 
 		log.Write(meet.buildLog())
 		log.Close()
+
+		if err := ioutil.WriteFile(meetingSummaryPath+".log", meet.Log.Bytes(), 0644); err != nil {
+			conn.Privmsg(event.Source, "Error saving meeting log. Please see application logs.")
+			return err
+		}
 
 		return nil
 	},
@@ -129,7 +138,7 @@ var endMeetingCmd = &ircbot.Command{
 
 var addChairCmd = &ircbot.Command{
 	Help: "Add a chair: #addchair nickname",
-	Handler: func(conn *irc.Conn, event *ircbot.Event) error {
+	Handler: func(conn *ircbot.Conn, event *ircbot.Event) error {
 		if !ircbot.IsChannel(event.Source) {
 			return nil
 		}
@@ -161,7 +170,7 @@ var addChairCmd = &ircbot.Command{
 
 var rmChairCmd = &ircbot.Command{
 	Help: "Remove a chair: #rmchair nickname",
-	Handler: func(conn *irc.Conn, event *ircbot.Event) error {
+	Handler: func(conn *ircbot.Conn, event *ircbot.Event) error {
 		if !ircbot.IsChannel(event.Source) {
 			return nil
 		}
@@ -198,7 +207,7 @@ var rmChairCmd = &ircbot.Command{
 
 var rollcallCmd = &ircbot.Command{
 	Help: "Add yourself to the roll call: #rollcall",
-	Handler: func(conn *irc.Conn, event *ircbot.Event) error {
+	Handler: func(conn *ircbot.Conn, event *ircbot.Event) error {
 		if !ircbot.IsChannel(event.Source) {
 			return nil
 		}
@@ -219,7 +228,7 @@ var rollcallCmd = &ircbot.Command{
 
 var topicCmd = &ircbot.Command{
 	Help: "Set the meeting topic: #topic topic name",
-	Handler: func(conn *irc.Conn, event *ircbot.Event) error {
+	Handler: func(conn *ircbot.Conn, event *ircbot.Event) error {
 		if !ircbot.IsChannel(event.Source) {
 			return nil
 		}
@@ -254,7 +263,7 @@ var topicCmd = &ircbot.Command{
 
 var actionCmd = &ircbot.Command{
 	Help: "Add an action item: #action nick details...",
-	Handler: func(conn *irc.Conn, event *ircbot.Event) error {
+	Handler: func(conn *ircbot.Conn, event *ircbot.Event) error {
 		if !ircbot.IsChannel(event.Source) {
 			return nil
 		}
@@ -301,7 +310,7 @@ func makeNoteHandler(prefix string) ircbot.CommandHandler {
 		msgprefix = fmt.Sprintf("%s: ", strings.ToUpper(prefix))
 	}
 
-	return func(conn *irc.Conn, event *ircbot.Event) error {
+	return func(conn *ircbot.Conn, event *ircbot.Event) error {
 		if !ircbot.IsChannel(event.Source) {
 			return nil
 		}

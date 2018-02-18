@@ -14,10 +14,10 @@ import (
 	"github.com/lfkeitel/yobot/config"
 )
 
-var ircConn *irc.Conn
+var ircConn *Conn
 
 // GetBot returns the existing IRC connection.
-func GetBot() *irc.Conn {
+func GetBot() *Conn {
 	return ircConn
 }
 
@@ -40,7 +40,7 @@ type Event struct {
 }
 
 // A CommandHandler actually handles processing a command.
-type CommandHandler func(conn *irc.Conn, event *Event) error
+type CommandHandler func(conn *Conn, event *Event) error
 
 // A Command contains information about a command.
 type Command struct {
@@ -163,7 +163,7 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 			}
 		}
 
-		ircConn = conn
+		ircConn = wrapConn(conn, conf)
 		close(ready)
 	})
 
@@ -186,6 +186,7 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 				fmt.Println(r)
 			}
 		}()
+		localConn := wrapConn(conn, conf)
 
 		if conf.Main.Debug {
 			fmt.Printf("%#v\n", line)
@@ -245,7 +246,7 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 		}
 
 		if handler == nil {
-			conn.Privmsg(recipient, "Please try .help")
+			localConn.Privmsg(recipient, "Please try .help")
 			return
 		}
 
@@ -257,10 +258,12 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 			Command: cmd,
 		}
 
-		if err := handler(conn, event); err != nil {
+		if err := handler(localConn, event); err != nil {
 			fmt.Println(err)
 		}
 	})
+
+	registerTapHandlers(c, conf)
 
 	if err := c.Connect(); err != nil {
 		fmt.Printf("Connection error: %s\n", err.Error())

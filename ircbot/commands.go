@@ -6,7 +6,6 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	irc "github.com/lfkeitel/goirc/client"
 	"github.com/lfkeitel/yobot/ircchalk"
 	"github.com/lfkeitel/yobot/utils"
 )
@@ -21,14 +20,14 @@ func init() {
 
 var (
 	pingCommand = &Command{
-		Handler: func(conn *irc.Conn, event *Event) error {
+		Handler: func(conn *Conn, event *Event) error {
 			conn.Privmsg(event.Source, "pong")
 			return nil
 		},
 		Help: "Let's play ping pong",
 	}
 	helpCommand = &Command{
-		Handler: func(conn *irc.Conn, event *Event) error {
+		Handler: func(conn *Conn, event *Event) error {
 			conn.Noticef(event.Source, "%s available commands:", ircchalk.Bold(event.Config.IRC.Nick))
 
 			cmdNames := make([]string, 0, len(commands))
@@ -56,14 +55,14 @@ var (
 		Help: "List help information",
 	}
 	helloCommand = &Command{
-		Handler: func(conn *irc.Conn, event *Event) error {
+		Handler: func(conn *Conn, event *Event) error {
 			conn.Privmsg(event.Source, "Hello, how are you?")
 			return nil
 		},
 		Help: "Say hello",
 	}
 	ping2Command = &Command{
-		Handler: func(conn *irc.Conn, event *Event) error {
+		Handler: func(conn *Conn, event *Event) error {
 			conn.Privmsg(event.Source, "pong2")
 			return nil
 		},

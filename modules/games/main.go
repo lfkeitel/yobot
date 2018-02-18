@@ -33,7 +33,7 @@ func init() {
 
 func main() {}
 
-func processMsg(conn *irc.Conn, event *ircbot.Event) error {
+func processMsg(conn *ircbot.Conn, event *ircbot.Event) error {
 	line := event.Line
 	args := event.Args
 
@@ -64,7 +64,7 @@ func processMsg(conn *irc.Conn, event *ircbot.Event) error {
 	return nil
 }
 
-func startGame(conn *irc.Conn, line *irc.Line, args []string) {
+func startGame(conn *ircbot.Conn, line *irc.Line, args []string) {
 	if hasActiveGame(line.Nick) {
 		conn.Notice(line.Nick, "You're already playing a game. Please stop your current game first.")
 		return
@@ -87,7 +87,7 @@ func startGame(conn *irc.Conn, line *irc.Line, args []string) {
 	ircbot.SetDefaultCommand(line.Nick, defaultGameCmd)
 }
 
-func stopGame(conn *irc.Conn, line *irc.Line, args []string) {
+func stopGame(conn *ircbot.Conn, line *irc.Line, args []string) {
 	if !hasActiveGame(line.Nick) {
 		conn.Notice(line.Nick, "You're not playing a game right now.")
 		return

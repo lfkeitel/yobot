@@ -8,6 +8,7 @@ import (
 	"time"
 
 	irc "github.com/lfkeitel/goirc/client"
+
 	"github.com/lfkeitel/yobot/ircbot"
 	"github.com/lfkeitel/yobot/utils"
 )
@@ -31,6 +32,7 @@ type meeting struct {
 	Rollcall  []string
 	Topics    []topic
 	Actions   []action
+	Log       bytes.Buffer
 }
 
 type topic struct {
@@ -43,7 +45,23 @@ type action struct {
 	Action     string
 }
 
-func (m *meeting) end(conn *irc.Conn, event *ircbot.Event) {
+func (m *meeting) tap(conn *ircbot.Conn, event *ircbot.Event) error {
+	var msg string
+
+	switch event.Cmd {
+	case irc.PRIVMSG:
+		msg = fmt.Sprintf("%s <%s> %s\n", timeNowInUTC(), event.Nick, event.Text())
+	case irc.ACTION:
+		msg = fmt.Sprintf("%s * %s %s\n", timeNowInUTC(), event.Nick, event.Text())
+	default:
+		return nil
+	}
+
+	m.Log.WriteString(msg)
+	return nil
+}
+
+func (m *meeting) end(conn *ircbot.Conn, event *ircbot.Event) {
 	m.Ended = time.Now().In(time.UTC)
 }
 
