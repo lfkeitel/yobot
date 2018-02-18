@@ -46,3 +46,7 @@ secret = "mysecret"
 alias = "general" # Use the same handler as the general route, must be a builin handler
 username = "john"
 password = "change me"
+
+# Module configurations are case sensative.
+#[modules.meetbot]
+#AllowedChannels = ["#bottest"]

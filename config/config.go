@@ -11,10 +11,11 @@ import (
 )
 
 type Config struct {
-	Main   MainConfig
-	IRC    IRCConfig
-	HTTP   HTTPConfig
-	Routes map[string]RouteConfig
+	Main    MainConfig
+	IRC     IRCConfig
+	HTTP    HTTPConfig
+	Routes  map[string]RouteConfig
+	Modules map[string]map[string]interface{}
 }
 
 type MainConfig struct {

@@ -11,6 +11,7 @@ import (
 	"github.com/kennygrant/sanitize"
 
 	"github.com/lfkeitel/yobot/ircbot"
+	"github.com/lfkeitel/yobot/utils"
 )
 
 func main() {}
@@ -32,6 +33,29 @@ func init() {
 	ircbot.RegisterCommand("#rollcall", rollcallCmd)
 }
 
+type meetbotConfig struct {
+	AllowedChannels []string
+}
+
+var config *meetbotConfig
+
+func processConfig(m map[string]interface{}) {
+	if config != nil {
+		return
+	}
+	if m == nil {
+		config = &meetbotConfig{}
+		return
+	}
+
+	var c meetbotConfig
+	if err := utils.FillStruct(&c, m); err != nil {
+		fmt.Println(err)
+		return
+	}
+	config = &c
+}
+
 func timeNowInUTC() string {
 	return time.Now().In(time.UTC).Format("15:04:05")
 }
@@ -40,6 +64,13 @@ var startMeetingCmd = &ircbot.Command{
 	Help: "Start a meeting: #startmeeting Meeting Name",
 	Handler: func(conn *ircbot.Conn, event *ircbot.Event) error {
 		if !ircbot.IsChannel(event.Source) {
+			return nil
+		}
+
+		processConfig(event.Config.Modules["meetbot"])
+
+		if len(config.AllowedChannels) > 0 && !utils.StringInSlice(event.Source, config.AllowedChannels) {
+			conn.Privmsg(event.Source, "This channel is not allowed to hold meetings.")
 			return nil
 		}
 
