@@ -25,6 +25,11 @@ func init() {
 
 	ircbot.RegisterCommand("#topic", topicCmd)
 	ircbot.RegisterCommand("#agreed", agreedCmd)
+	ircbot.RegisterCommand("#agree", agreedCmd)
+	ircbot.RegisterCommand("#rejected", rejectedCmd)
+	ircbot.RegisterCommand("#reject", rejectedCmd)
+	ircbot.RegisterCommand("#save", saveCmd)
+	ircbot.RegisterCommand("#meetingname", meetingNameCmd)
 
 	ircbot.RegisterCommand("#info", infoCmd)
 	ircbot.RegisterCommand("#action", actionCmd)
@@ -141,27 +146,96 @@ var endMeetingCmd = &ircbot.Command{
 		conn.Topic(event.Source, fmt.Sprintf("Meeting room %s", event.Source))
 		conn.Privmsgf(event.Source, "Meeting ended %s.", meet.Ended.Format(meetingTimeFormat))
 
-		meetingPath := filepath.Join(event.Config.ModuleDataDir("meetbot"), sanitize.Name(meet.Name))
+		return saveMeetingToDisk(conn, event, meet)
+	},
+}
 
-		if err := os.MkdirAll(meetingPath, 0755); err != nil {
-			conn.Privmsg(event.Source, "Error saving meeting log. Please see application logs.")
+var saveCmd = &ircbot.Command{
+	Help: "Save the meeting log immediately: #save",
+	Handler: func(conn *ircbot.Conn, event *ircbot.Event) error {
+		if !ircbot.IsChannel(event.Source) {
+			return nil
+		}
+
+		meetingsLock.Lock()
+		defer meetingsLock.Unlock()
+		meet, exists := meetings[event.Source]
+		if !exists {
+			conn.Privmsg(event.Source, "This channel doesn't have a meeting.")
+			return nil
+		}
+
+		if !meet.isChair(event.Line.Nick) {
+			conn.Privmsg(event.Source, "Only chairs can save the meeting log.")
+			return nil
+		}
+
+		if err := saveMeetingToDisk(conn, event, meet); err != nil {
 			return err
 		}
 
-		meetingSummaryPath := filepath.Join(meetingPath, meet.Started.Format(time.RFC3339))
-		log, err := os.OpenFile(meetingSummaryPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
-		if err != nil {
-			conn.Privmsg(event.Source, "Error saving meeting minutes. Please see application logs.")
-			return err
+		conn.Privmsg(event.Source, "Meeting log saved.")
+		return nil
+	},
+}
+
+func saveMeetingToDisk(conn *ircbot.Conn, event *ircbot.Event, meet *meeting) error {
+	meetingPath := filepath.Join(event.Config.ModuleDataDir("meetbot"), sanitize.Name(meet.Name))
+
+	if err := os.MkdirAll(meetingPath, 0755); err != nil {
+		conn.Privmsg(event.Source, "Error saving meeting log. Please see application logs.")
+		return err
+	}
+
+	meetingSummaryPath := filepath.Join(meetingPath, meet.Started.Format(time.RFC3339))
+	log, err := os.OpenFile(meetingSummaryPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		conn.Privmsg(event.Source, "Error saving meeting minutes. Please see application logs.")
+		return err
+	}
+
+	log.Write(meet.buildLog())
+	log.Close()
+
+	if err := ioutil.WriteFile(meetingSummaryPath+".log", meet.Log.Bytes(), 0644); err != nil {
+		conn.Privmsg(event.Source, "Error saving meeting log. Please see application logs.")
+		return err
+	}
+	return nil
+}
+
+var meetingNameCmd = &ircbot.Command{
+	Help: "Set the meeting name: #meetingname Meeting Name",
+	Handler: func(conn *ircbot.Conn, event *ircbot.Event) error {
+		if !ircbot.IsChannel(event.Source) {
+			return nil
 		}
 
-		log.Write(meet.buildLog())
-		log.Close()
-
-		if err := ioutil.WriteFile(meetingSummaryPath+".log", meet.Log.Bytes(), 0644); err != nil {
-			conn.Privmsg(event.Source, "Error saving meeting log. Please see application logs.")
-			return err
+		meetingsLock.Lock()
+		defer meetingsLock.Unlock()
+		meet, exists := meetings[event.Source]
+		if !exists {
+			conn.Privmsg(event.Source, "This channel doesn't have a meeting.")
+			return nil
 		}
+
+		if len(event.Args) == 0 {
+			conn.Privmsg(event.Source, "Help: #meetingname Meeting Name")
+			return nil
+		}
+
+		meetingName := strings.Join(event.Args, " ")
+
+		meet.Name = meetingName
+
+		currentTopic := meet.currentTopic()
+		if currentTopic.Name != "" {
+			conn.Topic(event.Source, fmt.Sprintf("%s (Meeting topic: %s (%s))", currentTopic.Name, meet.Name, meet.Started.Format("2006-01-02")))
+		} else {
+			conn.Topic(event.Source, fmt.Sprintf("Meeting: %s", meetingName))
+		}
+
+		conn.Privmsgf(event.Source, "The meeting name has been set to '%s'", meetingName)
 
 		return nil
 	},
@@ -283,9 +357,9 @@ var topicCmd = &ircbot.Command{
 		}
 
 		topicName := strings.Join(event.Args, " ")
-		internalName := fmt.Sprintf("%s  (%s, %s)", topicName, event.Nick, timeNowInUTC())
+		userInfo := fmt.Sprintf("(%s, %s)", event.Nick, timeNowInUTC())
 
-		meet.Topics = append(meet.Topics, topic{Name: internalName})
+		meet.Topics = append(meet.Topics, topic{Name: topicName, User: userInfo})
 
 		conn.Topic(event.Source, fmt.Sprintf("%s (Meeting topic: %s (%s))", topicName, meet.Name, meet.Started.Format("2006-01-02")))
 		return nil
@@ -326,8 +400,13 @@ var infoCmd = &ircbot.Command{
 }
 
 var agreedCmd = &ircbot.Command{
-	Help:    "Add an agreement: #agreed agreement details",
+	Help:    "Add an agreement: #agree[d] agreement details",
 	Handler: makeNoteHandler("agreed"),
+}
+
+var rejectedCmd = &ircbot.Command{
+	Help:    "Add a rejection: #reject[ed] details",
+	Handler: makeNoteHandler("rejected"),
 }
 
 var linkCmd = &ircbot.Command{

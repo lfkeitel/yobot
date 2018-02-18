@@ -37,6 +37,7 @@ type meeting struct {
 
 type topic struct {
 	Name  string
+	User  string
 	Items []string
 }
 
@@ -89,6 +90,13 @@ func (m *meeting) rmChair(nick string) {
 	m.Chairs = append(m.Chairs[:i], m.Chairs[i+1:]...)
 }
 
+func (m *meeting) currentTopic() topic {
+	if len(m.Topics) == 0 {
+		return topic{}
+	}
+	return m.Topics[len(m.Topics)-1]
+}
+
 func (m *meeting) buildLog() []byte {
 	var buf bytes.Buffer
 	if err := meetingLogTemplate.Execute(&buf, m); err != nil {
@@ -107,7 +115,7 @@ Meeting started by {{.StartedBy}} at {{.Started.Format "15:04:05"}} UTC.
 
 Meeting summary
 ---------------
-{{range .Topics}}* {{.Name}}
+{{range .Topics}}* {{.Name}} {{.User}}
 {{range .Items}}  * {{.}}
 {{end}}{{end}}
 
