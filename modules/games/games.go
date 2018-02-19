@@ -85,7 +85,7 @@ func (g *guessingGame) play(conn *ircbot.Conn, line *irc.Line, args []string) {
 
 	if guess == g.number {
 		g.stop(conn, line)
-		conn.Noticef(line.Nick, "You got it! The number was %d! You guessed the number in %d tries.", g.number, guessingTries-g.triesLeft)
+		conn.Noticef(line.Nick, "You got it! The number was %d! You guessed the number in %d tries.", g.number, guessingTries-g.triesLeft+1)
 		return
 	}
 
