@@ -73,6 +73,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	plugins.Init(conf, ircbot.GetBot())
+
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
@@ -83,6 +85,8 @@ func main() {
 	}
 
 	fmt.Println("Stopping")
+	plugins.Shutdown()
+
 	timer := time.NewTimer(5 * time.Second)
 
 	// Wait for all services to stop

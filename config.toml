@@ -48,5 +48,11 @@ username = "john"
 password = "change me"
 
 # Module configurations are case sensative.
-#[modules.meetbot]
-#AllowedChannels = ["#bottest"]
+
+# [modules.meetbot]
+# AllowedChannels = ["#bottest"]
+
+# [modules.dandelion]
+# URL = "https://dandelion.example.com"
+# ApiKey = "123456789"
+# Channels = ["#noc"]
