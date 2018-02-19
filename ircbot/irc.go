@@ -84,14 +84,12 @@ func RegisterCommand(cmd string, command *Command) {
 // the default command when it's done. t may be a user nick or channel name.
 // Setting a new default command will override any previous default.
 func SetDefaultCommand(t string, command *Command) {
-	fmt.Printf("Setting default handler for %s\n", t)
 	defaultCmds[t] = command
 }
 
 // ClearDefaultCommand will remove the default non-existant command command from a target.
 // t may be a user nick or channel name.
 func ClearDefaultCommand(t string) {
-	fmt.Printf("Clearing default handler for %s\n", t)
 	defaultCmds[t] = nil
 }
 
