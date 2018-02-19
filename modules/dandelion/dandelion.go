@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/lfkeitel/yobot/ircbot"
@@ -47,14 +48,14 @@ type dandelionResp struct {
 }
 
 type dandelionLog struct {
-	ID          int
+	ID          string
 	DateCreated string
 	TimeCreated string
 	Title       string
 	Body        string
-	UserID      int
+	UserID      string
 	Category    string
-	IsEdited    int
+	IsEdited    string
 	Fullname    string
 	CanEdit     bool
 	// On metadata key only
@@ -76,8 +77,7 @@ func startDandelionCheck() {
 		var apiResp dandelionResp
 		var logs []dandelionLog
 		var irc *ircbot.Conn
-
-		fmt.Println("Checking Dandelion")
+		var newID int
 
 		resp, err := http.Get(readAPI)
 		if err != nil {
@@ -103,7 +103,12 @@ func startDandelionCheck() {
 			goto sleep
 		}
 
-		if apiResp.Data["0"].ID <= lastID {
+		newID, _ = strconv.Atoi(apiResp.Data["0"].ID)
+		if lastID == 0 {
+			lastID = newID
+			goto sleep
+		}
+		if newID <= lastID {
 			goto sleep
 		}
 
@@ -114,7 +119,8 @@ func startDandelionCheck() {
 				continue
 			}
 
-			if log.ID > lastID {
+			logID, _ := strconv.Atoi(apiResp.Data[key].ID)
+			if logID > lastID {
 				logs = append(logs, log)
 			}
 		}
@@ -122,9 +128,10 @@ func startDandelionCheck() {
 		irc = ircbot.GetBot()
 		for _, log := range logs {
 			for _, channel := range dconf.Channels {
-				irc.Privmsgf(channel, "Dandelion - %s (%s) <%s/logs/%d>", log.Title, log.Fullname, dconf.URL, log.ID)
+				irc.Privmsgf(channel, "Dandelion - %s (%s) <%s/log/%s>", log.Title, log.Fullname, dconf.URL, log.ID)
 			}
 		}
+		lastID = newID
 
 	sleep:
 		time.Sleep(10 * time.Second)

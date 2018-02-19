@@ -1,6 +1,8 @@
 [main]
 debug = false
 extra_debug = false
+# modules_dir = "modules"
+# modules = ["meetbot"]
 
 [irc]
 server = "127.0.0.1"
