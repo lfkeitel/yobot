@@ -16,11 +16,17 @@ func init() {
 func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	severity := strings.ToUpper(r.Form.Get("severity"))
 
+	if strings.Contains(r.Form.Get("title"), "recovered") {
+		severity = "RECOVERY"
+	}
+
 	switch severity {
 	case "CRITICAL":
 		severity = ircchalk.Chalk(ircchalk.Red, "", severity)
 	case "WARNING":
 		severity = ircchalk.Chalk(ircchalk.Orange, "", severity)
+	case "RECOVERY":
+		severity = ircchalk.Chalk(ircchalk.Green, "", severity)
 	}
 	severity = ircchalk.Bold(severity)
 
