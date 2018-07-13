@@ -14,7 +14,7 @@ type Config struct {
 	Main    MainConfig
 	IRC     IRCConfig
 	HTTP    HTTPConfig
-	Routes  map[string]RouteConfig
+	Routes  map[string]*RouteConfig
 	Modules map[string]map[string]interface{}
 }
 

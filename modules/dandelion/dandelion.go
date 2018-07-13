@@ -44,7 +44,7 @@ type dandelionResp struct {
 	Errorcode   int
 	Module      string
 	RequestTime string
-	Data        map[string]dandelionLog
+	Data        map[string]*dandelionLog
 }
 
 type dandelionLog struct {
@@ -75,7 +75,7 @@ func startDandelionCheck() {
 	for {
 		var decoder *json.Decoder
 		var apiResp dandelionResp
-		var logs []dandelionLog
+		var logs []*dandelionLog
 		var irc *ircbot.Conn
 		var newID int
 
@@ -112,7 +112,7 @@ func startDandelionCheck() {
 			goto sleep
 		}
 
-		logs = make([]dandelionLog, 0, len(apiResp.Data)-1)
+		logs = make([]*dandelionLog, 0, len(apiResp.Data)-1)
 
 		for key, log := range apiResp.Data {
 			if key == "metadata" {

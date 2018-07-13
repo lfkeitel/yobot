@@ -14,22 +14,26 @@ func init() {
 }
 
 type gitEvent struct {
-	Secret  string
-	Ref     string
-	Commits []struct {
-		Message   string
-		URL       string
-		Committer struct {
-			Name     string
-			Email    string
-			Username string
-		}
-	}
-	Repository struct {
+	Secret     string
+	Ref        string
+	Commits    []*gitEventCommit
+	Repository gitEventRepo
+}
+
+type gitEventCommit struct {
+	Message   string
+	URL       string
+	Committer struct {
 		Name     string
-		FullName string `json:"full_name"`
-		HTMLurl  string
+		Email    string
+		Username string
 	}
+}
+
+type gitEventRepo struct {
+	Name     string
+	FullName string `json:"full_name"`
+	HTMLurl  string
 }
 
 func handleGit(ctx context.Context, w http.ResponseWriter, r *http.Request) {
