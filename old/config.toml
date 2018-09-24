@@ -1,0 +1,60 @@
+[main]
+debug = false
+extra_debug = false
+# modules_dir = "modules"
+# modules = ["meetbot"]
+
+[irc]
+server = "127.0.0.1"
+port = 6667
+nick = "yobot"
+tls = false
+insecure_tls = false
+channels = []
+auto_join_alert_channels = true
+
+[irc.sasl]
+sasl = false
+login = ""
+password = ""
+
+[http]
+address = ":8080"
+
+[routes.default]
+channels = ["#bottest"]
+username = ""
+password = ""
+
+[routes.grafana]
+enabled = true
+
+[routes.general]
+enabled = true
+
+[routes.librenms]
+enabled = true
+
+[routes.git]
+enabled = true
+
+[routes.git.settings]
+secret = "mysecret"
+
+# With will add /msgbus/custom which will be processed as it went to /msgbus/general
+# This allows custom channels or basic auth for a specific application but allows it
+# to use the same processing handler as something else.
+[routes.custom]
+alias = "general" # Use the same handler as the general route, must be a builin handler
+username = "john"
+password = "change me"
+
+# Module configurations are case sensative.
+
+# [modules.meetbot]
+# AllowedChannels = ["#bottest"]
+
+# [modules.dandelion]
+# URL = "https://dandelion.example.com"
+# ApiKey = "123456789"
+# Channels = ["#noc"]
