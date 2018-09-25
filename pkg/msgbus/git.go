@@ -55,7 +55,7 @@ func handleGit(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, commit := range event.Commits {
-		msg := fmt.Sprintf("### Git\n\n**%s** committed to **%s** on branch %s - **%s** - %s",
+		msg := fmt.Sprintf("### Git\n\n:large_blue_circle: **%s** committed to **%s** on branch %s - **%s** - %s",
 			commit.Committer.Name,
 			event.Repository.FullName,
 			event.Ref,

@@ -17,7 +17,8 @@ import (
 )
 
 var (
-	configFile string
+	configFile     string
+	testPluginFlag bool
 
 	debug      bool
 	extraDebug bool
@@ -27,6 +28,7 @@ func init() {
 	flag.StringVar(&configFile, "c", "config.toml", "Config file")
 	flag.BoolVar(&debug, "debug", false, "Debug mode")
 	flag.BoolVar(&extraDebug, "debug2", false, "Extra debug mode")
+	flag.BoolVar(&testPluginFlag, "tp", false, "Test loading plugins")
 
 	rand.Seed(time.Now().UnixNano())
 }
@@ -59,6 +61,10 @@ func main() {
 	if err := plugins.Load(conf.Main.ModulesDir, conf.Main.Modules); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
+	}
+
+	if testPluginFlag {
+		return
 	}
 
 	quit := utils.GetQuitChan()

@@ -2,3 +2,4 @@ private/
 bin/
 modules/*.so
 data/
+vendor/
