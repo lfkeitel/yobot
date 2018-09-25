@@ -13,9 +13,8 @@ func init() {
 
 func handleGeneral(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	type genericAlert struct {
-		Title      string `json:"title"`
-		Message    string `json:"message"`
-		TitleColor string `json:"title_color"`
+		Title   string `json:"title"`
+		Message string `json:"message"`
 	}
 
 	var alert genericAlert
@@ -26,6 +25,6 @@ func handleGeneral(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	DispatchIRCMessage(ctx, "%s - %s", alert.Title, alert.Message)
+	DispatchMessage(ctx, "%s - %s", alert.Title, alert.Message)
 	w.Write([]byte(`{"accepted": true}`))
 }

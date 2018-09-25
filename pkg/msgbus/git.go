@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/lfkeitel/yobot/utils"
+	"github.com/lfkeitel/yobot/pkg/utils"
 )
 
 func init() {
@@ -55,7 +55,7 @@ func handleGit(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, commit := range event.Commits {
-		msg := fmt.Sprintf("%s committed to %s on branch %s - %s - %s",
+		msg := fmt.Sprintf("### Git\n\n**%s** committed to **%s** on branch %s - **%s** - %s",
 			commit.Committer.Name,
 			event.Repository.FullName,
 			event.Ref,
@@ -63,6 +63,6 @@ func handleGit(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 			commit.URL,
 		)
 
-		DispatchIRCMessage(ctx, msg)
+		DispatchMessage(ctx, msg)
 	}
 }

@@ -35,6 +35,6 @@ func handleGrafana(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	DispatchIRCMessage(ctx, "%s - %s", alert.Title, alert.Message)
+	DispatchMessage(ctx, "### Grafana\n\n**%s** - %s", alert.Title, alert.Message)
 	w.Write([]byte(`{"accepted": true}`))
 }

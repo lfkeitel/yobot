@@ -8,11 +8,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/lfkeitel/yobot/ircbot"
-	"github.com/lfkeitel/yobot/plugins"
+	"github.com/lfkeitel/yobot/pkg/bot"
+	"github.com/lfkeitel/yobot/pkg/plugins"
 
-	"github.com/lfkeitel/yobot/config"
-	"github.com/lfkeitel/yobot/utils"
+	"github.com/lfkeitel/yobot/pkg/config"
+	"github.com/lfkeitel/yobot/pkg/utils"
 )
 
 type dandelionConfig struct {
@@ -29,14 +29,14 @@ func init() {
 	plugins.RegisterInit(dandelionInit)
 }
 
-func dandelionInit(conf *config.Config, bot *ircbot.Conn) {
+func dandelionInit(conf *config.Config, bot *bot.Bot) {
 	var dc dandelionConfig
 	if err := utils.FillStruct(&dc, conf.Modules["dandelion"]); err != nil {
 		panic(err)
 	}
 	dconf = &dc
 
-	go startDandelionCheck()
+	go startDandelionCheck(bot)
 }
 
 type dandelionResp struct {
@@ -65,7 +65,7 @@ type dandelionLog struct {
 	ResultCount int
 }
 
-func startDandelionCheck() {
+func startDandelionCheck(bot *bot.Bot) {
 	readAPI := dconf.URL + "/api/logs/read"
 	params := make(url.Values)
 	params.Set("apikey", dconf.ApiKey)
@@ -76,7 +76,6 @@ func startDandelionCheck() {
 		var decoder *json.Decoder
 		var apiResp dandelionResp
 		var logs []*dandelionLog
-		var irc *ircbot.Conn
 		var newID int
 
 		resp, err := http.Get(readAPI)
@@ -125,10 +124,11 @@ func startDandelionCheck() {
 			}
 		}
 
-		irc = ircbot.GetBot()
 		for _, log := range logs {
+			msg := fmt.Sprintf("### Dandelion\n\n**%s** (%s) <%s/log/%s>", log.Title, log.Fullname, dconf.URL, log.ID)
+
 			for _, channel := range dconf.Channels {
-				irc.Privmsgf(channel, "Dandelion - %s (%s) <%s/log/%s>", log.Title, log.Fullname, dconf.URL, log.ID)
+				bot.SendMsgTeamChannel(channel, msg)
 			}
 		}
 		lastID = newID

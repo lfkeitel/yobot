@@ -18,7 +18,10 @@ type Bot struct {
 	c            *model.Client4
 	user         *model.User
 	debugChannel *model.Channel
+	chanCache    map[string]*model.Channel
 }
+
+func GetBot() *Bot { return bot }
 
 // Start will attempt to the start the Mattermost client.
 func Start(conf *config.Config, quit, done chan bool) error {
@@ -41,7 +44,8 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 	}
 
 	bot = &Bot{
-		c: model.NewAPIv4Client(conf.Mattermost.Server),
+		c:         model.NewAPIv4Client(conf.Mattermost.Server),
+		chanCache: make(map[string]*model.Channel),
 	}
 
 	// Check server is available
@@ -93,6 +97,7 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 		return
 	}
 	webSocketClient.Listen()
+	bot.debugMsg("_Yobot is connected to the websocket and responding to requests_", "")
 
 	go func() {
 		for {
@@ -107,6 +112,7 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 	ready <- true
 
 	<-quit
+	bot.debugMsg("_Yobot is **stopping**_", "")
 	fmt.Println("Disconnecting from Mattermost server")
 	done <- true
 }
@@ -121,13 +127,6 @@ func makeDebugChannel(client *model.Client4, name, teamID string) (*model.Channe
 
 	c, resp := client.CreateChannel(channel)
 	return c, resp.Error
-}
-
-func (b *Bot) sendPing() {
-	for {
-		b.debugMsg("Ping", "")
-		time.Sleep(5 * time.Second)
-	}
 }
 
 func (b *Bot) debugMsg(msg string, replyToID string) {
@@ -155,7 +154,7 @@ func (b *Bot) handleMsgFromDebuggingChannel(event *model.WebSocketEvent) {
 	post := model.PostFromJson(strings.NewReader(event.Data["post"].(string)))
 	if post != nil {
 		// ignore my events
-		if post.UserId == b.user.Id {
+		if post.UserId == b.user.Id || post.IsSystemMessage() {
 			return
 		}
 
@@ -191,4 +190,31 @@ func (b *Bot) handleMsgFromDebuggingChannel(event *model.WebSocketEvent) {
 	}
 
 	b.debugMsg("I did not understand you!", post.Id)
+}
+
+func (b *Bot) SendMsgTeamChannel(name, msg string) error {
+	c, cached := b.chanCache[name]
+	var err error
+	if !cached {
+		c, err = b.FindChannelWithTeam(name)
+		if err != nil {
+			return err
+		}
+		b.chanCache[name] = c
+	}
+
+	return b.sendMsg(c.Id, msg, "")
+}
+
+func (b *Bot) sendMsg(id, msg, replyID string) error {
+	post := &model.Post{}
+	post.ChannelId = id
+	post.Message = msg
+	post.RootId = replyID
+
+	_, resp := b.c.CreatePost(post)
+	if resp.Error != nil {
+		return fmt.Errorf("failed to send message: %s", resp.Error.Error())
+	}
+	return nil
 }

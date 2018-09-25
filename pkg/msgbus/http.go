@@ -9,9 +9,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/lfkeitel/yobot/config"
-	"github.com/lfkeitel/yobot/ircbot"
-	"github.com/lfkeitel/yobot/utils"
+	"github.com/lfkeitel/yobot/pkg/bot"
+	"github.com/lfkeitel/yobot/pkg/config"
+	"github.com/lfkeitel/yobot/pkg/utils"
 )
 
 type BusHandler func(context.Context, http.ResponseWriter, *http.Request)
@@ -164,19 +164,27 @@ func TestMsgBusHandler(ctx context.Context, w http.ResponseWriter, r *http.Reque
 	fmt.Printf("Test params: %s\n", r.URL.Query().Encode())
 }
 
-// DispatchIRCMessage will send a PRIVMSG to the apppriate channels
-// based on the messages source bus. The Context must have route and
+// DispatchMessage will send a post to the appropriate channels
+// based on the message's source bus. The Context must have route and
 // conf key.
-func DispatchIRCMessage(ctx context.Context, f string, a ...interface{}) {
+func DispatchMessage(ctx context.Context, f string, a ...interface{}) {
 	conf := GetCtxConfig(ctx)
 	source := GetCtxRouteID(ctx)
 
-	channels := conf.Routes[source].Channels
-	if len(channels) == 0 {
-		channels = conf.Routes["default"].Channels
+	channels := conf.Routes["default"].Channels
+	// Channel override means use the route's channel setting exclusively
+	if conf.Routes[source].ChannelOverride {
+		channels = conf.Routes[source].Channels
+	} else {
+		for _, channel := range conf.Routes[source].Channels {
+			channels = append(channels, channel)
+		}
 	}
 
+	msg := fmt.Sprintf(f, a...)
 	for _, channel := range channels {
-		ircbot.GetBot().Privmsgf(channel, f, a...)
+		if err := bot.GetBot().SendMsgTeamChannel(channel, msg); err != nil {
+			fmt.Println(err)
+		}
 	}
 }

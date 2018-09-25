@@ -11,6 +11,8 @@ import (
 
 	"github.com/lfkeitel/yobot/pkg/bot"
 	"github.com/lfkeitel/yobot/pkg/config"
+	"github.com/lfkeitel/yobot/pkg/msgbus"
+	"github.com/lfkeitel/yobot/pkg/plugins"
 	"github.com/lfkeitel/yobot/pkg/utils"
 )
 
@@ -54,10 +56,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	// if err := plugins.Load(conf.Main.ModulesDir, conf.Main.Modules); err != nil {
-	// 	fmt.Println(err)
-	// 	os.Exit(1)
-	// }
+	if err := plugins.Load(conf.Main.ModulesDir, conf.Main.Modules); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	quit := utils.GetQuitChan()
 	done := make(chan bool, 2)
@@ -66,12 +68,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	// if err := msgbus.Start(conf, quit, done); err != nil {
-	// 	fmt.Println(err)
-	// 	os.Exit(1)
-	// }
+	if err := msgbus.Start(conf, quit, done); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
-	// plugins.Init(conf, ircbot.GetBot())
+	plugins.Init(conf, bot.GetBot())
 
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
@@ -83,12 +85,12 @@ func main() {
 	}
 
 	fmt.Println("Stopping")
-	// plugins.Shutdown()
+	plugins.Shutdown()
 
 	timer := time.NewTimer(5 * time.Second)
 
 	// Wait for all services to stop
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 2; i++ {
 		select {
 		case <-done:
 		case <-timer.C:

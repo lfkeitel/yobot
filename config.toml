@@ -16,5 +16,46 @@ firstname = "Yobot"
 lastname = ""
 nickname = "yobot"
 
+[http]
+address = ":8080"
+
 [team.Networking]
 channels = ["Yobot-Test"]
+
+[routes.default]
+channels = ["Networking:yobot-test"]
+username = ""
+password = ""
+
+[routes.grafana]
+enabled = true
+
+[routes.general]
+enabled = true
+
+[routes.librenms]
+enabled = true
+
+[routes.git]
+enabled = true
+
+[routes.git.settings]
+secret = "mysecret"
+
+# With will add /msgbus/custom which will be processed as it went to /msgbus/general
+# This allows custom channels or basic auth for a specific application but allows it
+# to use the same processing handler as something else.
+# [routes.custom]
+# alias = "general" # Use the same handler as the general route, must be a builin handler
+# username = "john"
+# password = "change me"
+
+# Module configurations are case sensative.
+
+# [modules.meetbot]
+# AllowedChannels = ["#bottest"]
+
+# [modules.dandelion]
+# URL = "https://dandelion.example.com"
+# ApiKey = "123456789"
+# Channels = ["Networking:noc"]

@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-
-	"github.com/lfkeitel/yobot/ircchalk"
 )
 
 func init() {
@@ -22,15 +20,14 @@ func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request)
 
 	switch severity {
 	case "CRITICAL":
-		severity = ircchalk.Chalk(ircchalk.Red, "", severity)
+		severity = ":bangbang: " + severity
 	case "WARNING":
-		severity = ircchalk.Chalk(ircchalk.Orange, "", severity)
+		severity = ":heavy_exclamation_mark: " + severity
 	case "RECOVERY":
-		severity = ircchalk.Chalk(ircchalk.Green, "", severity)
+		severity = ":white_check_mark: " + severity
 	}
-	severity = ircchalk.Bold(severity)
 
-	msg := fmt.Sprintf("LibreNMS: %s - %s on host %s - %s @ %s",
+	msg := fmt.Sprintf("### LibreNMS\n\n**%s** - %s on host %s - %s @ %s",
 		severity,
 		r.Form.Get("title"),
 		r.Form.Get("host"),
@@ -38,6 +35,6 @@ func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request)
 		r.Form.Get("timestamp"),
 	)
 
-	DispatchIRCMessage(ctx, msg)
+	DispatchMessage(ctx, msg)
 	w.Write([]byte(`{"accepted": true}`))
 }

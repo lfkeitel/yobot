@@ -1,12 +1,12 @@
 package plugins
 
 import (
-	"github.com/lfkeitel/yobot/config"
-	"github.com/lfkeitel/yobot/ircbot"
+	"github.com/lfkeitel/yobot/pkg/bot"
+	"github.com/lfkeitel/yobot/pkg/config"
 )
 
 type (
-	InitFunc     func(conf *config.Config, bot *ircbot.Conn)
+	InitFunc     func(conf *config.Config, bot *bot.Bot)
 	ShutdownFunc func()
 )
 
@@ -24,7 +24,7 @@ func RegisterShutdown(sd ShutdownFunc) {
 	shutdowns = append(shutdowns, sd)
 }
 
-func Init(conf *config.Config, bot *ircbot.Conn) {
+func Init(conf *config.Config, bot *bot.Bot) {
 	if ran {
 		return
 	}

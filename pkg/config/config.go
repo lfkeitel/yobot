@@ -15,6 +15,8 @@ type Config struct {
 	Mattermost MattermostConfig
 	HTTP       HTTPConfig
 	Team       map[string]TeamConfig
+	Routes     map[string]*RouteConfig
+	Modules    map[string]map[string]interface{}
 }
 
 type MainConfig struct {
@@ -45,6 +47,16 @@ type HTTPConfig struct {
 
 type TeamConfig struct {
 	Channels []string
+}
+
+type RouteConfig struct {
+	Enabled         bool
+	Channels        []string
+	ChannelOverride bool
+	Username        string
+	Password        string
+	Alias           string
+	Settings        map[string]string
 }
 
 func LoadConfig(filename string) (conf *Config, err error) {

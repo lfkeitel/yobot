@@ -6,10 +6,10 @@ test:
 	go test ./...
 
 build:
-	go build -o bin/yobot main.go
+	go build -o bin/yobot cmd/yobot/main.go
 
 build-no-modules:
-	CGO_ENABLED=0 go build -o bin/yobot main.go
+	CGO_ENABLED=0 go build -o bin/yobot cmd/yobot/main.go
 
 modules: SHELL:=/bin/bash
 modules:
