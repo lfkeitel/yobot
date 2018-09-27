@@ -1,28 +1,29 @@
 [main]
 debug = false
 extra_debug = false
-# modules_dir = "modules"
-# modules = ["meetbot"]
 
-[irc]
-server = "127.0.0.1"
-port = 6667
-nick = "yobot"
-tls = false
+[mattermost]
+server = "https://localhost:8065"
 insecure_tls = false
-channels = []
-auto_join_alert_channels = true
+debugChannel = "Networking:yobot-test"
 
-[irc.sasl]
-sasl = false
-login = ""
+[mattermost.login]
+username = ""
 password = ""
+
+[mattermost.botid]
+firstname = "Yobot"
+lastname = ""
+nickname = "yobot"
 
 [http]
 address = ":8080"
 
+[team.Networking]
+channels = ["Yobot-Test"]
+
 [routes.default]
-channels = ["#bottest"]
+channels = ["Networking:yobot-test"]
 username = ""
 password = ""
 
@@ -35,6 +36,11 @@ enabled = true
 [routes.librenms]
 enabled = true
 
+# Route sysContact information to a specific channel
+[routes.librenms.settings.routes]
+"*" = "Global:NOC" # Asterisk matches everything so all alerts will go here
+"email@domain.com" = "Server-Admins:NOC" # Alerts will go to this channel only if the email is in sysContact
+
 [routes.git]
 enabled = true
 
@@ -44,10 +50,10 @@ secret = "mysecret"
 # With will add /msgbus/custom which will be processed as it went to /msgbus/general
 # This allows custom channels or basic auth for a specific application but allows it
 # to use the same processing handler as something else.
-[routes.custom]
-alias = "general" # Use the same handler as the general route, must be a builin handler
-username = "john"
-password = "change me"
+# [routes.custom]
+# alias = "general" # Use the same handler as the general route, must be a builin handler
+# username = "john"
+# password = "change me"
 
 # Module configurations are case sensative.
 
@@ -57,4 +63,4 @@ password = "change me"
 # [modules.dandelion]
 # URL = "https://dandelion.example.com"
 # ApiKey = "123456789"
-# Channels = ["#noc"]
+# Channels = ["Networking:noc"]
