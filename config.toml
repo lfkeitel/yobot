@@ -36,6 +36,11 @@ enabled = true
 [routes.librenms]
 enabled = true
 
+# Route sysContact information to a specific channel
+[routes.librenms.settings.routes]
+"*" = "Global:NOC" # Asterisk matches everything so all alerts will go here
+"email@domain.com" = "Server-Admins:NOC" # Alerts will go to this channel only if the email is in sysContact
+
 [routes.git]
 enabled = true
 

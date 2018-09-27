@@ -182,8 +182,9 @@ func DispatchMessage(ctx context.Context, f string, a ...interface{}) {
 	}
 
 	msg := fmt.Sprintf(f, a...)
+	b := bot.GetBot()
 	for _, channel := range channels {
-		if err := bot.GetBot().SendMsgTeamChannel(channel, msg); err != nil {
+		if err := b.SendMsgTeamChannel(channel, msg); err != nil {
 			fmt.Println(err)
 		}
 	}

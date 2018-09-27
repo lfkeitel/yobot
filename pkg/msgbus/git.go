@@ -48,7 +48,7 @@ func handleGit(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	conf := GetCtxConfig(ctx)
 	routeID := GetCtxRouteID(ctx)
 
-	secret := utils.FirstString(conf.Routes[routeID].Settings["secret"], conf.Routes["git"].Settings["secret"])
+	secret := utils.FirstString(conf.Routes[routeID].Settings["secret"].(string), conf.Routes["git"].Settings["secret"].(string))
 	if secret != event.Secret {
 		w.WriteHeader(http.StatusUnauthorized)
 		return

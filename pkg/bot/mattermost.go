@@ -9,6 +9,7 @@ import (
 func (b *Bot) FindChannelWithTeam(name string) (*model.Channel, error) {
 	c := strings.SplitN(name, ":", 2)
 
+	c[0] = strings.Replace(c[0], " ", "-", -1)
 	team, err := b.FindTeam(c[0])
 	if err != nil {
 		return nil, err

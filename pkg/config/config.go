@@ -56,7 +56,7 @@ type RouteConfig struct {
 	Username        string
 	Password        string
 	Alias           string
-	Settings        map[string]string
+	Settings        map[string]interface{}
 }
 
 func LoadConfig(filename string) (conf *Config, err error) {
