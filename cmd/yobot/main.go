@@ -20,8 +20,14 @@ var (
 	configFile     string
 	testPluginFlag bool
 
-	debug      bool
-	extraDebug bool
+	debug       bool
+	extraDebug  bool
+	versionInfo bool
+
+	version   = ""
+	buildTime = ""
+	builder   = ""
+	goversion = ""
 )
 
 func init() {
@@ -29,12 +35,18 @@ func init() {
 	flag.BoolVar(&debug, "debug", false, "Debug mode")
 	flag.BoolVar(&extraDebug, "debug2", false, "Extra debug mode")
 	flag.BoolVar(&testPluginFlag, "tp", false, "Test loading plugins")
+	flag.BoolVar(&versionInfo, "v", false, "Print version information")
 
 	rand.Seed(time.Now().UnixNano())
 }
 
 func main() {
 	flag.Parse()
+
+	if versionInfo {
+		displayVersionInfo()
+		return
+	}
 
 	conf, err := config.LoadConfig(configFile)
 	if err != nil {
@@ -104,4 +116,14 @@ func main() {
 			os.Exit(1)
 		}
 	}
+}
+
+func displayVersionInfo() {
+	fmt.Printf(`Yobot
+
+Version:     %s
+Built:       %s
+Compiled by: %s
+Go version:  %s
+`, version, buildTime, builder, goversion)
 }

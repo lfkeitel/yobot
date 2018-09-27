@@ -1,3 +1,13 @@
+VERSION := $(shell git describe --tags --always --dirty)
+GOVERSION := $(shell go version)
+BUILDTIME := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+BUILDER := $(shell echo "`git config user.name` <`git config user.email`>")
+
+LDFLAGS := -X 'main.version=$(VERSION)' \
+			-X 'main.buildTime=$(BUILDTIME)' \
+			-X 'main.builder=$(BUILDER)' \
+			-X 'main.goversion=$(GOVERSION)'
+
 .PHONY: test build build-no-modules modules
 
 all: test build
@@ -6,10 +16,10 @@ test:
 	go test ./...
 
 build:
-	go build -o bin/yobot cmd/yobot/main.go
+	go build -o bin/yobot -v -ldflags "$(LDFLAGS)" cmd/yobot/main.go
 
 build-no-modules:
-	CGO_ENABLED=0 go build -o bin/yobot cmd/yobot/main.go
+	CGO_ENABLED=0 go build -o bin/yobot -v -ldflags "$(LDFLAGS)" cmd/yobot/main.go
 
 modules: SHELL:=/bin/bash
 modules:
