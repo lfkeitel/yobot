@@ -10,6 +10,7 @@ import (
 	"github.com/lfkeitel/yobot/librenms"
 	"github.com/lfkeitel/yobot/pkg/bot"
 	"github.com/lfkeitel/yobot/pkg/config"
+	"github.com/lfkeitel/yobot/pkg/utils"
 )
 
 func init() {
@@ -19,35 +20,47 @@ func init() {
 var libreNMSClient *librenms.Client
 
 func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	severity := strings.ToUpper(r.Form.Get("severity"))
+	alertTitle := utils.StringOrDefault(r.Form.Get("title"), "%TITLE%")
+	alertHost := utils.StringOrDefault(r.Form.Get("host"), "%HOST%")
+	alertSysName := utils.StringOrDefault(r.Form.Get("sysName"), "%SYSNAME%")
+	alertRuleName := utils.StringOrDefault(r.Form.Get("rule"), "%RULE%")
+	alertTimestamp := utils.StringOrDefault(r.Form.Get("timestamp"), "%TIMESTAMP%")
+	alertSeverity := strings.ToUpper(utils.StringOrDefault(r.Form.Get("severity"), "CRITICAL"))
 
-	if strings.Contains(r.Form.Get("title"), "recovered") {
-		severity = "RECOVERY"
+	// LibreNMS sends a critical severity for recovered because the alert itself was
+	// critical. We use a special severity tag if the alert is a recovery event.
+	if strings.Contains(alertTitle, "recovered") {
+		alertSeverity = "RECOVERY"
 	}
 
-	switch severity {
+	// Let the client go on its merry way. We have everything we need now.
+	w.Write([]byte(`{"accepted": true}`))
+
+	// Add emojis to the alerts for added emphasis
+	switch alertSeverity {
 	case "CRITICAL":
-		severity = ":bangbang: " + severity
+		alertSeverity = ":bangbang: " + alertSeverity
 	case "WARNING":
-		severity = ":heavy_exclamation_mark: " + severity
+		alertSeverity = ":heavy_exclamation_mark: " + alertSeverity
 	case "RECOVERY":
-		severity = ":white_check_mark: " + severity
+		alertSeverity = ":white_check_mark: " + alertSeverity
 	}
 
 	msg := fmt.Sprintf("### LibreNMS\n\n**%s** - %s on host %s - %s @ %s",
-		severity,
-		r.Form.Get("title"),
-		r.Form.Get("host"),
-		r.Form.Get("rule"),
-		r.Form.Get("timestamp"),
+		alertSeverity,
+		alertTitle,
+		alertHost,
+		alertRuleName,
+		alertTimestamp,
 	)
 
 	conf := GetCtxConfig(ctx)
-	routeConfig := conf.Routes["librenms"]
+	routeID := GetCtxRouteID(ctx)
+
+	routeConfig := conf.Routes[routeID]
 	contactRoutes, exists := routeConfig.Settings["routes"].(map[string]interface{})
 	if !exists {
 		DispatchMessage(ctx, msg)
-		w.Write([]byte(`{"accepted": true}`))
 		return
 	}
 
@@ -57,16 +70,15 @@ func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	dev, err := libreNMSClient.GetDevice(r.Form.Get("host"))
+	dev, err := libreNMSClient.GetDevice(alertSysName)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	if dev == nil {
-		fmt.Println("No device found, sending to non-routed channels")
+		fmt.Printf("Couldn't find device '%s', sending to non-routed channels\n", alertSysName)
 		DispatchMessage(ctx, msg)
-		w.Write([]byte(`{"accepted": true}`))
 		return
 	}
 
@@ -78,7 +90,6 @@ func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request)
 			}
 		}
 	}
-	w.Write([]byte(`{"accepted": true}`))
 }
 
 func setupLibreNMSClient(conf *config.RouteConfig) error {
