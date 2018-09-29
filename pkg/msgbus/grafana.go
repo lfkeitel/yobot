@@ -8,6 +8,12 @@ import (
 	"strings"
 )
 
+const (
+	grafanaEmojiOK       = ":white_check_mark:"
+	grafanaEmojiAlerting = ":bangbang:"
+	grafanaEmojiNoData   = ":heavy_exclamation_mark:"
+)
+
 func init() {
 	RegisterMsgBus("grafana", handleGrafana)
 }
@@ -37,11 +43,11 @@ func handleGrafana(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 	}
 
 	if strings.HasPrefix(alert.Title, "[OK]") {
-		alert.Title = strings.Replace(alert.Title, "[OK]", ":white_check_mark:", 1)
+		alert.Title = strings.Replace(alert.Title, "[OK]", grafanaEmojiOK, 1)
 	} else if strings.HasPrefix(alert.Title, "[Alerting]") {
-		alert.Title = strings.Replace(alert.Title, "[Alerting]", ":bangbang:", 1)
+		alert.Title = strings.Replace(alert.Title, "[Alerting]", grafanaEmojiAlerting, 1)
 	} else if strings.HasPrefix(alert.Title, "[No Data]") {
-		alert.Title = strings.Replace(alert.Title, "[No Data]", ":heavy_exclamation_mark:", 1)
+		alert.Title = strings.Replace(alert.Title, "[No Data]", grafanaEmojiNoData, 1)
 	}
 
 	DispatchMessage(ctx, "### Grafana\n\n**%s** - %s", alert.Title, alert.Message)
