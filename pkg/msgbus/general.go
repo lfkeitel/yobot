@@ -11,12 +11,12 @@ func init() {
 	RegisterMsgBus("general", handleGeneral)
 }
 
-func handleGeneral(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	type genericAlert struct {
-		Title   string `json:"title"`
-		Message string `json:"message"`
-	}
+type genericAlert struct {
+	Title   string `json:"title"`
+	Message string `json:"message"`
+}
 
+func handleGeneral(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	var alert genericAlert
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&alert); err != nil {
