@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"sync"
 
 	"github.com/lfkeitel/yobot/pkg/bot"
 	"github.com/lfkeitel/yobot/pkg/config"
@@ -18,18 +17,13 @@ type BusHandler func(context.Context, http.ResponseWriter, *http.Request)
 type MuxHandler func(*config.Config) http.HandlerFunc
 
 var (
-	busHandlers     = map[string]BusHandler{}
-	busHandlersLock sync.Mutex
-
+	busHandlers = map[string]BusHandler{}
 	muxHandlers = map[string]MuxHandler{
 		"/msgbus/": msgbusHandler,
 	}
-	muxHandlersLock sync.Mutex
 )
 
 func RegisterMsgBus(id string, handler BusHandler) {
-	busHandlersLock.Lock()
-	defer busHandlersLock.Unlock()
 	if _, exists := busHandlers[id]; exists {
 		panic(fmt.Sprintf("handler id %s is already registered", id))
 	}
@@ -37,8 +31,6 @@ func RegisterMsgBus(id string, handler BusHandler) {
 }
 
 func RegisterMuxHandler(path string, handler MuxHandler) {
-	muxHandlersLock.Lock()
-	defer muxHandlersLock.Unlock()
 	if _, exists := muxHandlers[path]; exists {
 		panic(fmt.Sprintf("handler path %s is already registered", path))
 	}
@@ -188,4 +180,10 @@ func DispatchMessage(ctx context.Context, f string, a ...interface{}) {
 			fmt.Println(err)
 		}
 	}
+}
+
+func RouteSetting(ctx context.Context, settingName string) interface{} {
+	conf := GetCtxConfig(ctx)
+	routeID := GetCtxRouteID(ctx)
+	return conf.Routes[routeID].Settings[settingName]
 }
