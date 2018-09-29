@@ -119,11 +119,17 @@ func main() {
 }
 
 func displayVersionInfo() {
+	pluginSupport := "Disabled"
+	if plugins.PluginsSupported {
+		pluginSupport = "Enabled"
+	}
+
 	fmt.Printf(`Yobot
 
 Version:     %s
 Built:       %s
 Compiled by: %s
 Go version:  %s
-`, version, buildTime, builder, goversion)
+Plugins:     %s
+`, version, buildTime, builder, goversion, pluginSupport)
 }

@@ -9,6 +9,8 @@ import (
 	"plugin"
 )
 
+const PluginsSupported = true
+
 func Load(path string, modules []string) error {
 	if len(modules) == 0 {
 		return nil
