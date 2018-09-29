@@ -13,7 +13,7 @@ func FirstString(o ...string) string {
 }
 
 func FirstLine(s string) string {
-	return strings.Split(s, "\n")[0]
+	return strings.SplitN(s, "\n", 2)[0]
 }
 
 var quitChan = make(chan bool)
@@ -38,4 +38,11 @@ func IndexOfString(s string, ss []string) int {
 		}
 	}
 	return -1
+}
+
+func StringOrDefault(s, def string) string {
+	if s == "" {
+		return def
+	}
+	return s
 }
