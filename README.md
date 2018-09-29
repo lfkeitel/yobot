@@ -29,7 +29,8 @@ For general application. Expected content:
 
 Uses URL parameters:
 
-- `host` - Hostname/system name
+- `host` - Hostname
+- `sysName` - System name
 - `title` - Title of alert
 - `rule` - Rule name
 - `severity` - Alert severity
@@ -47,3 +48,8 @@ a secret in the message. The secret and be configured using the route settings.
 [routes.git.settings]
 secret = "mysecret"
 ```
+
+## License
+
+This project is released under a truly free license, the BSD 3 Clause.
+License text can be found in the [LICENSE](LICENSE) file.
