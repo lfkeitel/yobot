@@ -59,7 +59,7 @@ func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request)
 
 	routeConfig := conf.Routes[routeID]
 	contactRoutes, exists := routeConfig.Settings["routes"].(map[string]interface{})
-	if !exists {
+	if !exists || alertSysName == "%SYSNAME%" {
 		DispatchMessage(ctx, msg)
 		return
 	}
