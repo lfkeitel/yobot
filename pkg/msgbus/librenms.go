@@ -46,10 +46,11 @@ func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request)
 		alertSeverity = ":white_check_mark: " + alertSeverity
 	}
 
-	msg := fmt.Sprintf("### LibreNMS\n\n**%s** - %s on host %s - %s @ %s",
+	msg := fmt.Sprintf("### LibreNMS\n\n**%s** - %s on host %s (%s) - %s @ %s",
 		alertSeverity,
 		alertTitle,
 		alertHost,
+		alertSysName,
 		alertRuleName,
 		alertTimestamp,
 	)
@@ -59,7 +60,7 @@ func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request)
 
 	routeConfig := conf.Routes[routeID]
 	contactRoutes, exists := routeConfig.Settings["routes"].(map[string]interface{})
-	if !exists || alertSysName == "%SYSNAME%" {
+	if !exists || alertHost == "%HOST%" {
 		DispatchMessage(ctx, msg)
 		return
 	}
@@ -70,14 +71,14 @@ func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	dev, err := libreNMSClient.GetDevice(alertSysName)
+	dev, err := libreNMSClient.GetDevice(alertHost)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	if dev == nil {
-		fmt.Printf("Couldn't find device '%s', sending to non-routed channels\n", alertSysName)
+		fmt.Printf("Couldn't find device '%s', sending to non-routed channels\n", alertHost)
 		DispatchMessage(ctx, msg)
 		return
 	}
