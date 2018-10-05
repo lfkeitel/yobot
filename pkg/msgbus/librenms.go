@@ -83,6 +83,12 @@ func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if dev.SysContact == "" {
+		fmt.Printf("No sysContact defined for device '%s', sending to non-routed channels\n", alertHost)
+		DispatchMessage(ctx, msg)
+		return
+	}
+
 	b := bot.GetBot()
 	for email, channel := range contactRoutes {
 		if email == "*" || strings.Contains(dev.SysContact, email) {

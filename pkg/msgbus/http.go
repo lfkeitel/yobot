@@ -168,9 +168,7 @@ func DispatchMessage(ctx context.Context, f string, a ...interface{}) {
 	if conf.Routes[source].ChannelOverride {
 		channels = conf.Routes[source].Channels
 	} else {
-		for _, channel := range conf.Routes[source].Channels {
-			channels = append(channels, channel)
-		}
+		channels = append(channels, conf.Routes[source].Channels...)
 	}
 
 	msg := fmt.Sprintf(f, a...)
