@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 
@@ -17,6 +16,7 @@ var bot *Bot
 type Bot struct {
 	c            *model.Client4
 	user         *model.User
+	UserID       string
 	debugChannel *model.Channel
 	chanCache    map[string]*model.Channel
 }
@@ -65,6 +65,7 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 		return
 	}
 	bot.user = user
+	bot.UserID = user.Id // Expose ID for other services
 
 	// team:channel
 	debugChan := strings.SplitN(conf.Mattermost.DebugChannel, ":", 2)
@@ -89,7 +90,12 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 
 	bot.debugMsg("_Yobot has **started**_", "")
 
-	remoteURL.Scheme = "wss"
+	if remoteURL.Scheme == "https" {
+		remoteURL.Scheme = "wss"
+	} else {
+		remoteURL.Scheme = "ws"
+	}
+
 	fmt.Printf("Connecting to websocket %s\n", remoteURL.String())
 	webSocketClient, err := model.NewWebSocketClient4(remoteURL.String(), bot.c.AuthToken)
 	if err.(*model.AppError) != nil {
@@ -99,16 +105,17 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 	webSocketClient.Listen()
 	bot.debugMsg("_Yobot is connected to the websocket and responding to requests_", "")
 
+	bot.RegisterEventHandler(bot.handleMsgFromDebuggingChannel, bot.debugChannel.Id, model.WEBSOCKET_EVENT_POSTED)
+
 	go func() {
 		for {
 			select {
 			case resp := <-webSocketClient.EventChannel:
-				bot.handleMsgFromDebuggingChannel(resp)
+				bot.handleEvents(resp)
 			}
 		}
 	}()
 
-	// go bot.sendPing()
 	ready <- true
 
 	<-quit
@@ -129,67 +136,8 @@ func makeDebugChannel(client *model.Client4, name, teamID string) (*model.Channe
 	return c, resp.Error
 }
 
-func (b *Bot) debugMsg(msg string, replyToID string) {
-	post := &model.Post{}
-	post.ChannelId = b.debugChannel.Id
-	post.Message = msg
-	post.RootId = replyToID
-	_, resp := b.c.CreatePost(post)
-	if resp.Error != nil {
-		fmt.Printf("Failed to send debug message: %s\n", resp.Error.Error())
-	}
-}
-
-func (b *Bot) handleMsgFromDebuggingChannel(event *model.WebSocketEvent) {
-	// If this isn't the debugging channel then lets ingore it
-	if event.Broadcast.ChannelId != b.debugChannel.Id {
-		return
-	}
-
-	// Lets only reponded to messaged posted events
-	if event.Event != model.WEBSOCKET_EVENT_POSTED {
-		return
-	}
-
-	post := model.PostFromJson(strings.NewReader(event.Data["post"].(string)))
-	if post != nil {
-		// ignore my events
-		if post.UserId == b.user.Id || post.IsSystemMessage() {
-			return
-		}
-
-		// if you see any word matching 'alive' then respond
-		if matched, _ := regexp.MatchString(`(?:^|\W)alive(?:$|\W)`, post.Message); matched {
-			b.debugMsg("Yes I'm running", post.Id)
-			return
-		}
-
-		// if you see any word matching 'up' then respond
-		if matched, _ := regexp.MatchString(`(?:^|\W)up(?:$|\W)`, post.Message); matched {
-			b.debugMsg("Yes I'm running", post.Id)
-			return
-		}
-
-		// if you see any word matching 'running' then respond
-		if matched, _ := regexp.MatchString(`(?:^|\W)running(?:$|\W)`, post.Message); matched {
-			b.debugMsg("Yes I'm running", post.Id)
-			return
-		}
-
-		// if you see any word matching 'hello' then respond
-		if matched, _ := regexp.MatchString(`(?:^|\W)hello(?:$|\W)`, post.Message); matched {
-			b.debugMsg("Yes I'm running", post.Id)
-			return
-		}
-
-		// if you see any word matching 'hello' then respond
-		if matched, _ := regexp.MatchString(`(?:^|\W)ping(?:$|\W)`, post.Message); matched {
-			b.debugMsg("pong", post.Id)
-			return
-		}
-	}
-
-	b.debugMsg("I did not understand you!", post.Id)
+func (b *Bot) debugMsg(msg, replyID string) {
+	b.sendMsg(b.debugChannel.Id, msg, replyID)
 }
 
 func (b *Bot) SendMsgTeamChannel(name, msg string) error {
