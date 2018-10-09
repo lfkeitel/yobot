@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/lfkeitel/yobot/librenms"
@@ -17,7 +18,16 @@ func init() {
 	RegisterMsgBus("librenms", handleLibreNMS)
 }
 
-var libreNMSClient *librenms.Client
+var (
+	libreNMSClient *librenms.Client
+
+	routeRegexs = make(map[string][]contact, 1)
+)
+
+type contact struct {
+	match   *regexp.Regexp
+	channel string
+}
 
 func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	alertTitle := utils.StringOrDefault(r.Form.Get("title"), "%TITLE%")
@@ -46,6 +56,10 @@ func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request)
 		alertSeverity = ":white_check_mark: " + alertSeverity
 	}
 
+	if alertSysName == "%SYSNAME%" {
+		alertSysName = alertHost
+	}
+
 	msg := fmt.Sprintf("### LibreNMS\n\n**%s** - %s on host %s (%s) - %s @ %s",
 		alertSeverity,
 		alertTitle,
@@ -55,12 +69,27 @@ func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request)
 		alertTimestamp,
 	)
 
+	if alertHost == "%HOST%" {
+		DispatchMessage(ctx, msg)
+		return
+	}
+
 	conf := GetCtxConfig(ctx)
 	routeID := GetCtxRouteID(ctx)
-
 	routeConfig := conf.Routes[routeID]
-	contactRoutes, exists := routeConfig.Settings["routes"].(map[string]interface{})
-	if !exists || alertHost == "%HOST%" {
+
+	contactRoutes, exists := routeRegexs[routeID]
+	if !exists {
+		makeRouteMatches(routeID, routeConfig)
+
+		contactRoutes, exists = routeRegexs[routeID]
+		if !exists {
+			DispatchMessage(ctx, msg)
+			return
+		}
+	}
+
+	if contactRoutes == nil {
 		DispatchMessage(ctx, msg)
 		return
 	}
@@ -90,13 +119,53 @@ func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request)
 	}
 
 	b := bot.GetBot()
-	for email, channel := range contactRoutes {
-		if email == "*" || strings.Contains(dev.SysContact, email) {
-			if err := b.SendMsgTeamChannel(channel.(string), msg); err != nil {
+	for _, c := range contactRoutes {
+		if c.match.MatchString(dev.SysContact) {
+			if err := b.SendMsgTeamChannel(c.channel, msg); err != nil {
 				fmt.Println(err)
 			}
 		}
 	}
+}
+
+func makeRouteMatches(id string, rc *config.RouteConfig) {
+	contactRoutes, exists := rc.Settings["routes"].(map[string]interface{})
+	if !exists {
+		routeRegexs[id] = nil
+		return
+	}
+
+	contacts := make([]contact, 0, len(contactRoutes))
+	for email, channel := range contactRoutes {
+		if len(email) == 0 {
+			continue
+		}
+
+		if email == "*" { // Match everything
+			email = ".*"
+		} else if email[0] != '/' { // No forward slash prefix means literal string
+			email = regexp.QuoteMeta(email)
+		} else {
+			// Must be enclosed in forward slash
+			if email[len(email)-1] != '/' {
+				fmt.Printf("Invalid regex: %s\n", email)
+				continue
+			}
+
+			email = email[1 : len(email)-1] // Chop off /.../
+		}
+
+		r, err := regexp.Compile(email)
+		if err != nil {
+			fmt.Printf("Invalid regex: %s\n", email)
+			continue
+		}
+
+		c := contact{channel: channel.(string), match: r}
+		contacts = append(contacts, c)
+	}
+
+	routeRegexs[id] = contacts
 }
 
 func setupLibreNMSClient(conf *config.RouteConfig) error {

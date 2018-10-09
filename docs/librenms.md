@@ -27,8 +27,8 @@ apitoken    = ""    # LibreNMS API token
 # A key of "*" means a copy of all messages will be sent to that channel.
 # An alert will go to all matching channels so order does not matter.
 [routes.librenms.settings.routes]
-"*"                = "Global:NOC"        # Asterisk matches everything so all alerts will go here
-"email@domain.com" = "Server-Admins:NOC" # Alerts will go to this channel only if the email is in sysContact
+"*"                 = "Global:NOC"        # Asterisk matches everything so all alerts will go here
+"email@example.com" = "Server-Admins:NOC" # Alerts will go to this channel only if the email is in sysContact
 ```
 
 ## LibreNMS Configuration
@@ -54,13 +54,19 @@ alerted device. If the API call fails or the device isn't found, the module
 falls back to normal message bus posting rules.
 
 If a device is found, the sysContact information is checked against all configured
-`settings.routes` keys. If a key is found in the sysContact, a copy of the message
+`settings.routes` keys. If a key is matched against the sysContact, a copy of the message
 is sent to that channel. If the key is `*`, a copy of the message is sent regardless
-of what the sysContact information is. The matched keys need only be contained
-somewhere in the sysContact field. The match doesn't need to be exact except in
-letter casing. The key doesn't even need to be an email address like the example.
-It can be any string. Emails are more typical however because usually an email
-alert may also be sent.
+of what the sysContact information is. The key can be a literal string or a regular
+expression. Regular expressions can save space by consolidating multiple emails or
+other strings into a single expression. The key doesn't need to be an email address
+like the example. It can be any string. Emails are more typical however because
+usually an email alert may also be sent.
+
+Examples of keys:
+
+- `*` - Matches any sysContact, an alert will always be sent to this channel (equivalent to `/.*/`).
+- `some string` - Will match if "some string" is anywhere in sysContact.
+- `/regexp?/` - Will match if the sysContact matches the regular expression.
 
 It's recommended to configure ChannelOverride for the LibreNMS module just to
 be sure that alerts are only going where you expect them to. Typically the
@@ -74,5 +80,6 @@ ChannelOverride = true
 
 [routes.librenms.settings.routes]
 "*" = "Global:NOC"
-"email@domain.com" = "Server-Admins:NOC"
+"email@example.com" = "Server-Admins:NOC"
+"/Servers.*?@example.com/" = "Server-Admins:NOC"
 ```
