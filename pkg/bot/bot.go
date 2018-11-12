@@ -11,7 +11,10 @@ import (
 	"github.com/mattermost/mattermost-server/model"
 )
 
-var bot *Bot
+var (
+	bot     *Bot
+	appconf *config.Config
+)
 
 type Bot struct {
 	c            *model.Client4
@@ -47,6 +50,7 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 		c:         model.NewAPIv4Client(conf.Mattermost.Server),
 		chanCache: make(map[string]*model.Channel),
 	}
+	appconf = conf
 
 	// Check server is available
 	props, resp := bot.c.GetOldClientConfig("")
@@ -58,14 +62,10 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 	fmt.Println("Server detected and is running version " + props["Version"])
 
 	// Login
-	user, resp := bot.c.Login(conf.Mattermost.Login.Username, conf.Mattermost.Login.Password)
-	if resp.Error != nil {
-		fmt.Println("There was a problem logging into the Mattermost server.  Are you sure ran the setup steps from the README.md?")
-		fmt.Println(resp.Error)
+	if err := bot.login(); err != nil {
+		fmt.Println(err)
 		return
 	}
-	bot.user = user
-	bot.UserID = user.Id // Expose ID for other services
 
 	// team:channel
 	debugChan := strings.SplitN(conf.Mattermost.DebugChannel, ":", 2)
@@ -136,6 +136,17 @@ func makeDebugChannel(client *model.Client4, name, teamID string) (*model.Channe
 	return c, resp.Error
 }
 
+func (b *Bot) login() error {
+	user, resp := bot.c.Login(appconf.Mattermost.Login.Username, appconf.Mattermost.Login.Password)
+	if resp.Error != nil {
+		return fmt.Errorf("There was a problem logging into the Mattermost server.  Are you sure ran the setup steps from the README.md?\n%s", resp.Error.Error())
+	}
+
+	bot.user = user
+	bot.UserID = user.Id // Expose ID for other services
+	return nil
+}
+
 func (b *Bot) debugMsg(msg, replyID string) {
 	b.sendMsg(b.debugChannel.Id, msg, replyID)
 }
@@ -161,8 +172,17 @@ func (b *Bot) sendMsg(id, msg, replyID string) error {
 	post.RootId = replyID
 
 	_, resp := b.c.CreatePost(post)
-	if resp.Error != nil {
-		return fmt.Errorf("failed to send message: %s", resp.Error.Error())
+	if resp.Error == nil {
+		return nil
 	}
-	return nil
+
+	if resp.Error.Id == "api.context.session_expired.app_error" {
+		if err := b.login(); err != nil {
+			return errors.New("session expired and failed to login again, please check credentials")
+		}
+
+		return b.sendMsg(id, msg, replyID)
+	}
+
+	return fmt.Errorf("failed to send message: %s (%s)", resp.Error.Error(), resp.Error.Id)
 }
