@@ -10,10 +10,10 @@ LDFLAGS := -X 'main.version=$(VERSION)' \
 
 .PHONY: test build build-no-modules modules
 
-all: test build
+all: test build modules
 
 test:
-	go test ./...
+	go test ./pkg/...
 
 build:
 	go build -o bin/yobot -v -ldflags "$(LDFLAGS)" cmd/yobot/main.go

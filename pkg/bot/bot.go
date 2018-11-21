@@ -17,11 +17,14 @@ var (
 )
 
 type Bot struct {
+	remoteURL    *url.URL
+	wsURL        *url.URL
 	c            *model.Client4
 	user         *model.User
 	UserID       string
 	debugChannel *model.Channel
 	chanCache    map[string]*model.Channel
+	wsClient     *model.WebSocketClient
 }
 
 func GetBot() *Bot { return bot }
@@ -47,6 +50,7 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 	}
 
 	bot = &Bot{
+		remoteURL: remoteURL,
 		c:         model.NewAPIv4Client(conf.Mattermost.Server),
 		chanCache: make(map[string]*model.Channel),
 	}
@@ -90,31 +94,17 @@ func start(conf *config.Config, quit, done, ready chan bool) {
 
 	bot.debugMsg("_Yobot has **started**_", "")
 
+	bot.wsURL, _ = url.Parse(bot.remoteURL.String())
 	if remoteURL.Scheme == "https" {
-		remoteURL.Scheme = "wss"
+		bot.wsURL.Scheme = "wss"
 	} else {
-		remoteURL.Scheme = "ws"
+		bot.wsURL.Scheme = "ws"
 	}
 
-	fmt.Printf("Connecting to websocket %s\n", remoteURL.String())
-	webSocketClient, err := model.NewWebSocketClient4(remoteURL.String(), bot.c.AuthToken)
-	if err.(*model.AppError) != nil {
-		fmt.Printf("We failed to connect to the web socket: %s\n", err.Error())
+	if err := bot.startWebsocket(); err != nil {
+		fmt.Println(err.Error())
 		return
 	}
-	webSocketClient.Listen()
-	bot.debugMsg("_Yobot is connected to the websocket and responding to requests_", "")
-
-	bot.RegisterEventHandler(bot.handleMsgFromDebuggingChannel, bot.debugChannel.Id, model.WEBSOCKET_EVENT_POSTED)
-
-	go func() {
-		for {
-			select {
-			case resp := <-webSocketClient.EventChannel:
-				bot.handleEvents(resp)
-			}
-		}
-	}()
 
 	ready <- true
 
@@ -144,6 +134,52 @@ func (b *Bot) login() error {
 
 	bot.user = user
 	bot.UserID = user.Id // Expose ID for other services
+	return nil
+}
+
+func (b *Bot) startWebsocket() error {
+	fmt.Printf("Connecting to websocket %s\n", bot.wsURL.String())
+	if b.wsClient != nil {
+		b.wsClient.Close()
+	}
+
+	webSocketClient, err := model.NewWebSocketClient4(b.wsURL.String(), bot.c.AuthToken)
+	if err != nil {
+		return fmt.Errorf("we failed to connect to the web socket: %s", err.Error())
+	}
+	webSocketClient.Listen()
+	bot.debugMsg("_Yobot is connected to the websocket and responding to requests_", "")
+
+	bot.RegisterEventHandler(bot.handleMsgFromDebuggingChannel, bot.debugChannel.Id, model.WEBSOCKET_EVENT_POSTED)
+	bot.wsClient = webSocketClient
+
+	go func() {
+		for {
+			select {
+			case resp, ok := <-bot.wsClient.EventChannel:
+				if !ok { // Event channel is closed
+					bot.debugMsg("_Yobot has closed its websocket_", "")
+					return
+				}
+
+				bot.handleEvents(resp)
+			case <-bot.wsClient.ResponseChannel:
+				continue
+			}
+		}
+	}()
+	return nil
+}
+
+func (b *Bot) relogin() error {
+	if err := b.login(); err != nil {
+		return errors.New("session expired and failed to login again, please check credentials")
+	}
+
+	if err := b.startWebsocket(); err != nil {
+		return errors.New("session expired and failed to start websocket again, please check credentials")
+	}
+
 	return nil
 }
 
@@ -177,8 +213,8 @@ func (b *Bot) sendMsg(id, msg, replyID string) error {
 	}
 
 	if resp.Error.Id == "api.context.session_expired.app_error" {
-		if err := b.login(); err != nil {
-			return errors.New("session expired and failed to login again, please check credentials")
+		if err := b.relogin(); err != nil {
+			return err
 		}
 
 		return b.sendMsg(id, msg, replyID)
