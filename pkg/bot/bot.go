@@ -138,8 +138,11 @@ func (b *Bot) login() error {
 }
 
 func (b *Bot) startWebsocket() error {
+	reconnect := false
+
 	fmt.Printf("Connecting to websocket %s\n", bot.wsURL.String())
 	if b.wsClient != nil {
+		reconnect = true
 		b.wsClient.Close()
 	}
 
@@ -150,7 +153,9 @@ func (b *Bot) startWebsocket() error {
 	webSocketClient.Listen()
 	bot.debugMsg("_Yobot is connected to the websocket and responding to requests_", "")
 
-	bot.RegisterEventHandler(bot.handleMsgFromDebuggingChannel, bot.debugChannel.Id, model.WEBSOCKET_EVENT_POSTED)
+	if !reconnect {
+		bot.RegisterEventHandler(bot.handleMsgFromDebuggingChannel, bot.debugChannel.Id, model.WEBSOCKET_EVENT_POSTED)
+	}
 	bot.wsClient = webSocketClient
 
 	go func() {
