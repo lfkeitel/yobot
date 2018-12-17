@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/lfkeitel/yobot/pkg/bot"
@@ -44,21 +43,26 @@ type dandelionResp struct {
 	Errorcode   int
 	Module      string
 	RequestTime string
-	Data        map[string]*dandelionLog
+	Data        struct {
+		Logs     []dandelionLog
+		Metadata dandelionMetadata
+	}
 }
 
 type dandelionLog struct {
-	ID          string
+	ID          int
 	DateCreated string
 	TimeCreated string
 	Title       string
 	Body        string
-	UserID      string
+	UserID      int
 	Category    string
-	IsEdited    string
+	IsEdited    bool
 	Fullname    string
 	CanEdit     bool
-	// On metadata key only
+}
+
+type dandelionMetadata struct {
 	Limit       int
 	LogSize     int
 	Offset      int
@@ -75,7 +79,6 @@ func startDandelionCheck(bot *bot.Bot) {
 	for {
 		var decoder *json.Decoder
 		var apiResp dandelionResp
-		var logs []*dandelionLog
 		var newID int
 
 		resp, err := http.Get(readAPI)
@@ -98,11 +101,11 @@ func startDandelionCheck(bot *bot.Bot) {
 		}
 
 		// No returned logs
-		if apiResp.Data["metadata"].ResultCount == 0 {
+		if apiResp.Data.Metadata.ResultCount == 0 {
 			goto sleep
 		}
 
-		newID, _ = strconv.Atoi(apiResp.Data["0"].ID)
+		newID = apiResp.Data.Logs[0].ID
 		if lastID == 0 {
 			lastID = newID
 			goto sleep
@@ -111,24 +114,13 @@ func startDandelionCheck(bot *bot.Bot) {
 			goto sleep
 		}
 
-		logs = make([]*dandelionLog, 0, len(apiResp.Data)-1)
+		for _, log := range apiResp.Data.Logs {
+			if log.ID >= lastID {
+				msg := fmt.Sprintf("### Dandelion\n\n**%s** (%s) <%s/log/%d>", log.Title, log.Fullname, dconf.URL, log.ID)
 
-		for key, log := range apiResp.Data {
-			if key == "metadata" {
-				continue
-			}
-
-			logID, _ := strconv.Atoi(apiResp.Data[key].ID)
-			if logID > lastID {
-				logs = append(logs, log)
-			}
-		}
-
-		for _, log := range logs {
-			msg := fmt.Sprintf("### Dandelion\n\n**%s** (%s) <%s/log/%s>", log.Title, log.Fullname, dconf.URL, log.ID)
-
-			for _, channel := range dconf.Channels {
-				bot.SendMsgTeamChannel(channel, msg)
+				for _, channel := range dconf.Channels {
+					bot.SendMsgTeamChannel(channel, msg)
+				}
 			}
 		}
 		lastID = newID
