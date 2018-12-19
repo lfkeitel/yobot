@@ -22,7 +22,7 @@ type grafanaAlert struct {
 	EvalMatches []struct {
 		Value  int
 		Metric string
-		Tags   []string
+		Tags   map[string]string
 	} `json:"evalMatches"`
 	ImageURL string `json:"imageUrl"`
 	Message  string `json:"message"`
@@ -42,11 +42,12 @@ func handleGrafana(ctx context.Context, w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if strings.HasPrefix(alert.Title, "[OK]") {
+	switch alert.State {
+	case "ok":
 		alert.Title = strings.Replace(alert.Title, "[OK]", grafanaEmojiOK, 1)
-	} else if strings.HasPrefix(alert.Title, "[Alerting]") {
+	case "alerting":
 		alert.Title = strings.Replace(alert.Title, "[Alerting]", grafanaEmojiAlerting, 1)
-	} else if strings.HasPrefix(alert.Title, "[No Data]") {
+	case "no_data":
 		alert.Title = strings.Replace(alert.Title, "[No Data]", grafanaEmojiNoData, 1)
 	}
 
