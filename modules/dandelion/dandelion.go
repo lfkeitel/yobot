@@ -115,7 +115,7 @@ func startDandelionCheck(bot *bot.Bot) {
 		}
 
 		for _, log := range apiResp.Data.Logs {
-			if log.ID >= lastID {
+			if log.ID > lastID {
 				msg := fmt.Sprintf("### Dandelion\n\n**%s** (%s) <%s/log/%d>", log.Title, log.Fullname, dconf.URL, log.ID)
 
 				for _, channel := range dconf.Channels {
