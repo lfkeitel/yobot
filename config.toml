@@ -58,10 +58,10 @@ secret = "mysecret"
 
 # Module configurations are case sensative.
 
-# [modules.meetbot]
+# [[modules.meetbot]]
 # AllowedChannels = ["#bottest"]
 
-# [modules.dandelion]
+# [[modules.dandelion]]
 # URL = "https://dandelion.example.com"
 # ApiKey = "123456789"
 # Channels = ["Networking:noc"]

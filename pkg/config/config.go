@@ -16,7 +16,7 @@ type Config struct {
 	HTTP       HTTPConfig
 	Team       map[string]TeamConfig
 	Routes     map[string]*RouteConfig
-	Modules    map[string]map[string]interface{}
+	Modules    map[string][]map[string]interface{}
 }
 
 type MainConfig struct {

@@ -19,23 +19,23 @@ type dandelionConfig struct {
 	Channels    []string
 }
 
-var (
-	dconf  *dandelionConfig
-	lastID = 0
-)
-
 func init() {
 	plugins.RegisterInit(dandelionInit)
 }
 
 func dandelionInit(conf *config.Config, bot *bot.Bot) {
-	var dc dandelionConfig
-	if err := utils.FillStruct(&dc, conf.Modules["dandelion"]); err != nil {
-		panic(err)
-	}
-	dconf = &dc
+	for _, instance := range conf.Modules["dandelion"] {
+		var dc dandelionConfig
+		if err := utils.FillStruct(&dc, instance); err != nil {
+			panic(err)
+		}
 
-	go startDandelionCheck(bot)
+		fmt.Printf("Starting Dandelion for %s\n", dc.URL)
+		inst := dandelionPlugin{
+			conf: &dc,
+		}
+		go inst.check(bot)
+	}
 }
 
 type dandelionResp struct {
@@ -69,10 +69,15 @@ type dandelionMetadata struct {
 	ResultCount int
 }
 
-func startDandelionCheck(bot *bot.Bot) {
-	readAPI := dconf.URL + "/api/logs/read"
+type dandelionPlugin struct {
+	conf   *dandelionConfig
+	lastID int
+}
+
+func (d dandelionPlugin) check(bot *bot.Bot) {
+	readAPI := d.conf.URL + "/api/logs/read"
 	params := make(url.Values)
-	params.Set("apikey", dconf.ApiKey)
+	params.Set("apikey", d.conf.ApiKey)
 	params.Set("limit", "10")
 	readAPI = readAPI + "?" + params.Encode()
 
@@ -106,24 +111,24 @@ func startDandelionCheck(bot *bot.Bot) {
 		}
 
 		newID = apiResp.Data.Logs[0].ID
-		if lastID == 0 {
-			lastID = newID
+		if d.lastID == 0 {
+			d.lastID = newID
 			goto sleep
 		}
-		if newID <= lastID {
+		if newID <= d.lastID {
 			goto sleep
 		}
 
 		for _, log := range apiResp.Data.Logs {
-			if log.ID > lastID {
-				msg := fmt.Sprintf("### Dandelion\n\n**%s** (%s) <%s/log/%d>", log.Title, log.Fullname, dconf.URL, log.ID)
+			if log.ID > d.lastID {
+				msg := fmt.Sprintf("### Dandelion\n\n**%s** (%s) <%s/log/%d>", log.Title, log.Fullname, d.conf.URL, log.ID)
 
-				for _, channel := range dconf.Channels {
+				for _, channel := range d.conf.Channels {
 					bot.SendMsgTeamChannel(channel, msg)
 				}
 			}
 		}
-		lastID = newID
+		d.lastID = newID
 
 	sleep:
 		time.Sleep(10 * time.Second)
