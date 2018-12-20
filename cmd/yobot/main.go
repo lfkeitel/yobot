@@ -19,6 +19,7 @@ import (
 var (
 	configFile     string
 	testPluginFlag bool
+	testConfig     bool
 
 	debug       bool
 	extraDebug  bool
@@ -35,6 +36,7 @@ func init() {
 	flag.BoolVar(&debug, "debug", false, "Debug mode")
 	flag.BoolVar(&extraDebug, "debug2", false, "Extra debug mode")
 	flag.BoolVar(&testPluginFlag, "tp", false, "Test loading plugins")
+	flag.BoolVar(&testConfig, "t", false, "Test configuration syntax")
 	flag.BoolVar(&versionInfo, "v", false, "Print version information")
 
 	rand.Seed(time.Now().UnixNano())
@@ -52,6 +54,10 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
+	}
+
+	if testConfig {
+		return
 	}
 
 	if extraDebug {
