@@ -6,6 +6,8 @@
 
 ***Supports Aliases***: yes
 
+**Endpoint**: `/msgbus/grafana`
+
 ## Description
 
 The grafana module handles alert events from a Grafan instance.

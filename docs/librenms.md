@@ -6,6 +6,8 @@
 
 ***Supports Aliases***: yes
 
+**Endpoint**: `/msgbus/librenms`
+
 ## Description
 
 The librenms module accepts alert events from LibreNMS.

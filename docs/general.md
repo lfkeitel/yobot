@@ -6,6 +6,8 @@
 
 ***Supports Aliases***: yes
 
+**Endpoint**: `/msgbus/general`
+
 ## Description
 
 The general module accepts an arbitrary event with a title and message.

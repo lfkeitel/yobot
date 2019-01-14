@@ -6,6 +6,8 @@
 
 ***Supports Aliases***: yes
 
+**Endpoint**: `/msgbus/git`
+
 ## Description
 
 The git module accepts webhook push events from GitHub or Gitea.
