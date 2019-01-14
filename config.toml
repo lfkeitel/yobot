@@ -48,6 +48,12 @@ enabled = true
 [routes.git.settings]
 secret = "mysecret"
 
+[routes.git-issues]
+enabled = true
+
+[routes.git-issues.settings]
+secret = "mysecret"
+
 # With will add /msgbus/custom which will be processed as it went to /msgbus/general
 # This allows custom channels or basic auth for a specific application but allows it
 # to use the same processing handler as something else.

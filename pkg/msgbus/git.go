@@ -19,33 +19,37 @@ const gitPostEmoji = ":large_blue_circle:"
 
 func init() {
 	RegisterMsgBus("git", handleGit)
+	RegisterMsgBus("git-issues", handleGitIssues)
 }
 
 type gitEvent struct {
 	Secret     string // Gitea only
 	Ref        string
-	Commits    []*gitEventCommit
-	Repository gitEventRepo
+	Commits    []*gitHookCommit
+	Repository gitHookRepo
 }
 
-type gitEventCommit struct {
+type gitHookCommit struct {
 	Message string
 	URL     string
 	Author  struct { // GitHub only
 		Name  string
 		Email string
 	}
-	Committer struct { // Gitea only
-		Name     string
-		Email    string
-		Username string
-	}
+	Committer gitHookUser // Gitea only
 }
 
-type gitEventRepo struct {
+type gitHookUser struct {
 	Name     string
 	FullName string `json:"full_name"`
-	HTMLurl  string
+	Email    string
+	Username string
+}
+
+type gitHookRepo struct {
+	Name     string
+	FullName string `json:"full_name"`
+	HTMLurl  string `json:"html_url"`
 }
 
 func handleGit(ctx context.Context, w http.ResponseWriter, r *http.Request) {
@@ -142,4 +146,111 @@ func checkGitHubHash(key string, message, expectedMAC []byte) bool {
 	mac.Write(message)
 	messageMAC := mac.Sum(nil)
 	return hmac.Equal(messageMAC, expectedMAC)
+}
+
+type hookIssueData struct {
+	Secret     string
+	Action     string
+	Issue      gitHookIssue
+	Comment    *gitHookIssueComment
+	Repository gitHookRepo
+	Sender     gitHookUser
+}
+
+type apiLabel struct {
+	Name string
+}
+
+type gitHookIssue struct {
+	ID       int
+	User     gitHookUser
+	Title    string
+	Body     string
+	Labels   []apiLabel
+	Assignee *gitHookUser
+}
+
+type gitHookIssueComment struct {
+	HTMLURL string `json:"html_url"`
+	User    gitHookUser
+	Body    string
+}
+
+func handleGitIssues(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	var hookData hookIssueData
+
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&hookData); err != nil {
+		fmt.Printf("Error decoding response: %s\n", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	secret := RouteSetting(ctx, "secret").(string)
+
+	if secret != hookData.Secret {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	var msg string
+
+	switch hookData.Action {
+	case "opened":
+		msg = fmt.Sprintf("### Git Issue\n\n%s **%s** opened an issue in %s - **%s** - %s",
+			gitPostEmoji,
+			hookData.Sender.FullName,
+			hookData.Repository.FullName,
+			hookData.Issue.Title,
+			issueLink(hookData),
+		)
+	case "reopened":
+		msg = fmt.Sprintf("### Git Issue\n\n%s **%s** reopened an issue in %s - **%s** - %s",
+			gitPostEmoji,
+			hookData.Sender.FullName,
+			hookData.Repository.FullName,
+			hookData.Issue.Title,
+			issueLink(hookData),
+		)
+	case "closed":
+		msg = fmt.Sprintf("### Git Issue\n\n%s **%s** closed an issue in %s - **%s** - %s",
+			gitPostEmoji,
+			hookData.Sender.FullName,
+			hookData.Repository.FullName,
+			hookData.Issue.Title,
+			issueLink(hookData),
+		)
+	case "assigned":
+		msg = fmt.Sprintf("### Git Issue\n\n%s **%s** assigned issue **%s** to %s - %s",
+			gitPostEmoji,
+			hookData.Sender.FullName,
+			hookData.Issue.Title,
+			hookData.Issue.Assignee.Name,
+			issueLink(hookData),
+		)
+	case "created":
+		msg = fmt.Sprintf("### Git Issue\n\n%s **%s** commented on an issue in %s - **%s** - %s",
+			gitPostEmoji,
+			hookData.Sender.FullName,
+			hookData.Repository.FullName,
+			hookData.Issue.Title,
+			hookData.Comment.HTMLURL,
+		)
+	case "deleted":
+		msg = fmt.Sprintf("### Git Issue\n\n%s **%s** deleted a comment on an issue in %s - **%s** - %s",
+			gitPostEmoji,
+			hookData.Sender.FullName,
+			hookData.Repository.FullName,
+			hookData.Issue.Title,
+			issueLink(hookData),
+		)
+	default:
+		return
+	}
+
+	DispatchMessage(ctx, msg)
+}
+
+func issueLink(d hookIssueData) string {
+	return fmt.Sprintf("%s/issues/%d", d.Repository.HTMLurl, d.Issue.ID)
 }
