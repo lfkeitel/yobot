@@ -19,11 +19,11 @@ func init() {
 }
 
 type grafanaAlert struct {
-	EvalMatches []struct {
-		Value  int
-		Metric string
-		Tags   map[string]string
-	} `json:"evalMatches"`
+	// EvalMatches []struct {
+	// 	Value  int
+	// 	Metric string
+	// 	Tags   map[string]string
+	// } `json:"evalMatches"`
 	ImageURL string `json:"imageUrl"`
 	Message  string `json:"message"`
 	RuleID   int    `json:"ruleId"`
