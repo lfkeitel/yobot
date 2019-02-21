@@ -47,7 +47,7 @@ type System struct {
 	LocalSha    string `json:"local_sha"`
 	LocalDate   string `json:"local_date"`
 	LocalBranch string `json:"local_branch"`
-	DBSchema    int    `json:"db_schema"`
+	DBSchema    string `json:"db_schema"`
 	PhpVer      string `json:"php_ver"`
 	MySQLVer    string `json:"mysql_ver"`
 	RrdtoolVer  string `json:"rrdtool_ver"`
