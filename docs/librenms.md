@@ -36,10 +36,18 @@ apitoken    = ""    # LibreNMS API token
 ## LibreNMS Configuration
 
 In LibreNMS you will need to setup an API transport for alerts. The endpoint
-follow the form `http://YOBOT_URL.example.com/msgbus/librenms?PARAMS`.
-The following PARAMS need to be sent: title, host, sysName, severity, rule, and timestamp.
+follow the form `http[s]://YOBOT_URL.example.com/msgbus/librenms`.
+The following PARAMS need to be sent: title, host, sysName, severity, and message.
 
-Example: `http://yobot.example.com/msgbus/librenms?title=%title&host=%hostname&sysName=%sysName&rule=%rulename&timestamp=%timestamp&severity=%severity`
+Example:
+
+```
+title={{ $title }}
+host={{ $hostname }}
+sysName={{ $sysName }}
+severity={{ $severity }}
+message={{ $msg }}
+```
 
 Any extra parameters will be ignored. Missing parameters will be replaced with
 a placeholder.

@@ -33,9 +33,8 @@ func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request)
 	alertTitle := utils.StringOrDefault(r.Form.Get("title"), "%TITLE%")
 	alertHost := utils.StringOrDefault(r.Form.Get("host"), "%HOST%")
 	alertSysName := utils.StringOrDefault(r.Form.Get("sysName"), "%SYSNAME%")
-	alertRuleName := utils.StringOrDefault(r.Form.Get("rule"), "%RULE%")
-	alertTimestamp := utils.StringOrDefault(r.Form.Get("timestamp"), "%TIMESTAMP%")
 	alertSeverity := strings.ToUpper(utils.StringOrDefault(r.Form.Get("severity"), "CRITICAL"))
+	alertMsg := strings.ToUpper(utils.StringOrDefault(r.Form.Get("message"), "%MESSAGE%"))
 
 	// LibreNMS sends a critical severity for recovered because the alert itself was
 	// critical. We use a special severity tag if the alert is a recovery event.
@@ -60,13 +59,9 @@ func handleLibreNMS(ctx context.Context, w http.ResponseWriter, r *http.Request)
 		alertSysName = alertHost
 	}
 
-	msg := fmt.Sprintf("### LibreNMS\n\n**%s** - %s on host %s (%s) - %s @ %s",
+	msg := fmt.Sprintf("### LibreNMS\n\n**%s**\n\n%s",
 		alertSeverity,
-		alertTitle,
-		alertHost,
-		alertSysName,
-		alertRuleName,
-		alertTimestamp,
+		alertMsg,
 	)
 
 	if alertHost == "%HOST%" {
