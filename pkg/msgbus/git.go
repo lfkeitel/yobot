@@ -163,6 +163,7 @@ type apiLabel struct {
 
 type gitHookIssue struct {
 	ID       int
+	Number   int
 	User     gitHookUser
 	Title    string
 	Body     string
@@ -252,5 +253,5 @@ func handleGitIssues(ctx context.Context, w http.ResponseWriter, r *http.Request
 }
 
 func issueLink(d hookIssueData) string {
-	return fmt.Sprintf("%s/issues/%d", d.Repository.HTMLurl, d.Issue.ID)
+	return fmt.Sprintf("%s/issues/%d", d.Repository.HTMLurl, d.Issue.Number)
 }
