@@ -121,7 +121,7 @@ type Device struct {
 	Version     string `json:"version"`
 	Hardware    string `json:"hardware"`
 	OS          string `json:"os"`
-	Status      int    `json:"status"`
+	Status      bool   `json:"status"`
 	Ignore      int    `json:"ignore"`
 	Disabled    int    `json:"disabled"`
 	Uptime      int64  `json:"uptime"`
